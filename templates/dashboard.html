@@ -5,18 +5,19 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
 
-    <meta name="description"
-          content="SecureGraphical secure authentication dashboard.">
+    <meta
+        name="description"
+        content="SecureGraphical security dashboard">
 
-    <title>
-        SecureGraphical | Dashboard
-    </title>
+    <title>SecureGraphical | Dashboard</title>
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <link
+        rel="stylesheet"
+        href="{{ url_for('static', filename='style.css') }}">
 
 </head>
 
@@ -25,29 +26,50 @@
 
 
 <!-- =====================================================
-     NAVBAR
+     TOP NAVIGATION
 ===================================================== -->
 
-<nav class="navbar">
+<nav class="topbar">
 
-    <div class="brand">
+    <div class="nav-left">
 
-        <div class="brand-icon">
+        <div class="brand-mark">
             SG
         </div>
 
-        <div>
-            Secure<span>Graphical</span>
+        <div class="brand-text">
+
+            <strong>
+                SecureGraphical
+            </strong>
+
+            <span>
+                Authentication System
+            </span>
+
         </div>
 
     </div>
 
 
-    <div class="system-status">
+    <div class="nav-right">
 
-        <div class="status-dot"></div>
+        <div class="online-status">
 
-        Secure authentication active
+            <span class="online-dot"></span>
+
+            System Secure
+
+        </div>
+
+
+        <a
+            href="{{ url_for('logout') }}"
+            class="logout-link">
+
+            Logout
+
+        </a>
 
     </div>
 
@@ -56,72 +78,94 @@
 
 
 <!-- =====================================================
-     PAGE
+     MAIN
 ===================================================== -->
 
-<main class="page">
-
-
-    <div class="header">
-
-        <div class="eyebrow">
-            SECURE DASHBOARD
-        </div>
-
-        <h1>
-            Welcome back, {{ name }}
-        </h1>
-
-        <p>
-            Your identity has been successfully verified
-            through the SecureGraphical multi-layer
-            authentication system.
-        </p>
-
-    </div>
-
+<main class="dashboard-container">
 
 
     <!-- =================================================
-         DASHBOARD CARD
+         WELCOME
     ================================================== -->
 
-    <div class="card dashboard-card">
+    <section class="welcome-section">
 
+        <div>
 
-        <div class="logo">
-            SG
+            <div class="page-label">
+                SECURITY DASHBOARD
+            </div>
+
+            <h1>
+                Welcome back,
+                <span>{{ name }}</span>
+            </h1>
+
+            <p>
+                Your identity has been successfully verified
+                through multiple authentication layers.
+            </p>
+
         </div>
 
 
-        <h1>
-            Authentication Successful
-        </h1>
+        <div class="verified-badge">
 
-
-        <p class="subtitle">
-            You have successfully authenticated.
-        </p>
-
-
-
-        <!-- SECURITY STATUS -->
-
-        <div class="security-status">
-
-            <div class="status-icon">
+            <div class="verified-icon">
                 ✓
             </div>
 
             <div>
 
-                <h3>
-                    Identity Verified
-                </h3>
+                <strong>
+                    Verified Account
+                </strong>
+
+                <span>
+                    Authentication complete
+                </span>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         MAIN SECURITY CARD
+    ================================================== -->
+
+    <section class="hero-security-card">
+
+        <div class="hero-left">
+
+            <div class="security-circle">
+
+                <div class="security-circle-inner">
+
+                    <span>
+                        ✓
+                    </span>
+
+                </div>
+
+            </div>
+
+            <div>
+
+                <div class="small-label">
+                    CURRENT STATUS
+                </div>
+
+                <h2>
+                    Authentication Successful
+                </h2>
 
                 <p>
-                    Your password and graphical password
-                    have both been verified successfully.
+                    All required authentication layers
+                    have been successfully verified.
                 </p>
 
             </div>
@@ -129,138 +173,559 @@
         </div>
 
 
+        <div class="hero-right">
 
-        <!-- ACCOUNT INFORMATION -->
-
-        <section class="dashboard-section">
-
-            <h2>
-                Account Information
-            </h2>
-
-
-            <div class="info-row">
+            <div class="security-level">
 
                 <span>
-                    Full Name
+                    SECURITY LEVEL
                 </span>
 
                 <strong>
-                    {{ name }}
+                    HIGH
                 </strong>
 
             </div>
 
+            <div class="security-progress">
 
-            <div class="info-row">
+                <div class="progress-track">
+
+                    <div class="progress-value"></div>
+
+                </div>
+
+                <div class="progress-labels">
+
+                    <span>
+                        Protection strength
+                    </span>
+
+                    <strong>
+                        88%
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         STATISTICS
+    ================================================== -->
+
+    <section class="stats-grid">
+
+
+        <div class="stat-card">
+
+            <div class="stat-icon blue">
+                🔐
+            </div>
+
+            <div>
 
                 <span>
-                    Email Address
+                    Authentication
                 </span>
 
                 <strong>
-                    {{ email }}
+                    Multi-Layer
                 </strong>
 
             </div>
-
-
-            <div class="info-row">
-
-                <span>
-                    Authentication Method
-                </span>
-
-                <strong>
-                    Multi-Layer Authentication
-                </strong>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- SECURITY FEATURES -->
-
-        <section class="dashboard-section">
-
-            <h2>
-                Security Features
-            </h2>
-
-
-            <div class="feature-list">
-
-                <div class="feature">
-                    ✓ Password Hashing
-                </div>
-
-                <div class="feature">
-                    ✓ Graphical Password
-                </div>
-
-                <div class="feature">
-                    ✓ CAPTCHA Verification
-                </div>
-
-                <div class="feature">
-                    ✓ Session Authentication
-                </div>
-
-                <div class="feature">
-                    ✓ Protected Dashboard
-                </div>
-
-                <div class="feature">
-                    ✓ Secure Database Storage
-                </div>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- LOGOUT -->
-
-        <a
-            href="{{ url_for('logout') }}"
-            class="logout-button">
-
-            Logout
-
-        </a>
-
-
-
-        <!-- SECURITY NOTE -->
-
-        <div class="security">
-
-            🔒 SecureGraphical Authentication System
-
-            <br>
-
-            Your account is protected by multiple
-            authentication mechanisms.
 
         </div>
 
 
-    </div>
+        <div class="stat-card">
+
+            <div class="stat-icon green">
+                ✓
+            </div>
+
+            <div>
+
+                <span>
+                    Account Status
+                </span>
+
+                <strong>
+                    Protected
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-icon purple">
+                ◉
+            </div>
+
+            <div>
+
+                <span>
+                    Graphical Password
+                </span>
+
+                <strong>
+                    Enabled
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="stat-card">
+
+            <div class="stat-icon orange">
+                ●
+            </div>
+
+            <div>
+
+                <span>
+                    Session
+                </span>
+
+                <strong>
+                    Active
+                </strong>
+
+            </div>
+
+        </div>
+
+
+    </section>
 
 
 
-    <div class="footer">
+    <!-- =================================================
+         TWO COLUMN CONTENT
+    ================================================== -->
 
-        SecureGraphical • Graphical Password
-        Authentication System
+    <section class="dashboard-grid">
 
-    </div>
+
+        <!-- =============================================
+             ACCOUNT
+        ============================================== -->
+
+        <div class="dashboard-card">
+
+            <div class="card-heading">
+
+                <div>
+
+                    <span class="section-kicker">
+                        ACCOUNT
+                    </span>
+
+                    <h2>
+                        Account Information
+                    </h2>
+
+                </div>
+
+                <div class="heading-icon">
+                    👤
+                </div>
+
+            </div>
+
+
+            <div class="account-profile">
+
+                <div class="avatar">
+
+                    {{ name[0]|upper }}
+
+                </div>
+
+                <div>
+
+                    <strong>
+                        {{ name }}
+                    </strong>
+
+                    <span>
+                        SecureGraphical User
+                    </span>
+
+                </div>
+
+            </div>
+
+
+            <div class="info-list">
+
+
+                <div class="info-item">
+
+                    <span>
+                        Full Name
+                    </span>
+
+                    <strong>
+                        {{ name }}
+                    </strong>
+
+                </div>
+
+
+                <div class="info-item">
+
+                    <span>
+                        Email Address
+                    </span>
+
+                    <strong>
+                        {{ email }}
+                    </strong>
+
+                </div>
+
+
+                <div class="info-item">
+
+                    <span>
+                        Authentication Method
+                    </span>
+
+                    <strong>
+                        Multi-Factor Authentication
+                    </strong>
+
+                </div>
+
+
+                <div class="info-item">
+
+                    <span>
+                        Account Protection
+                    </span>
+
+                    <strong class="green-text">
+                        Active
+                    </strong>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+
+        <!-- =============================================
+             SECURITY LAYERS
+        ============================================== -->
+
+        <div class="dashboard-card">
+
+            <div class="card-heading">
+
+                <div>
+
+                    <span class="section-kicker">
+                        PROTECTION
+                    </span>
+
+                    <h2>
+                        Security Layers
+                    </h2>
+
+                </div>
+
+                <div class="heading-icon">
+                    🛡
+                </div>
+
+            </div>
+
+
+            <div class="security-list">
+
+
+                <div class="security-row">
+
+                    <div class="security-row-icon green-bg">
+                        ✓
+                    </div>
+
+                    <div class="security-row-content">
+
+                        <strong>
+                            Password Hashing
+                        </strong>
+
+                        <span>
+                            Password stored using secure hashing.
+                        </span>
+
+                    </div>
+
+                    <div class="active-tag">
+                        Active
+                    </div>
+
+                </div>
+
+
+
+                <div class="security-row">
+
+                    <div class="security-row-icon blue-bg">
+                        ◉
+                    </div>
+
+                    <div class="security-row-content">
+
+                        <strong>
+                            Graphical Password
+                        </strong>
+
+                        <span>
+                            Three-character graphical sequence.
+                        </span>
+
+                    </div>
+
+                    <div class="active-tag">
+                        Active
+                    </div>
+
+                </div>
+
+
+
+                <div class="security-row">
+
+                    <div class="security-row-icon purple-bg">
+                        ✓
+                    </div>
+
+                    <div class="security-row-content">
+
+                        <strong>
+                            CAPTCHA Verification
+                        </strong>
+
+                        <span>
+                            Human verification enabled.
+                        </span>
+
+                    </div>
+
+                    <div class="active-tag">
+                        Active
+                    </div>
+
+                </div>
+
+
+
+                <div class="security-row">
+
+                    <div class="security-row-icon orange-bg">
+                        ●
+                    </div>
+
+                    <div class="security-row-content">
+
+                        <strong>
+                            Session Authentication
+                        </strong>
+
+                        <span>
+                            Protected session currently active.
+                        </span>
+
+                    </div>
+
+                    <div class="active-tag">
+                        Active
+                    </div>
+
+                </div>
+
+
+            </div>
+
+        </div>
+
+
+    </section>
+
+
+
+    <!-- =================================================
+         SECURITY ACTIVITY
+    ================================================== -->
+
+    <section class="dashboard-card activity-card">
+
+        <div class="card-heading">
+
+            <div>
+
+                <span class="section-kicker">
+                    SYSTEM ACTIVITY
+                </span>
+
+                <h2>
+                    Authentication Overview
+                </h2>
+
+            </div>
+
+            <span class="live-badge">
+                ● LIVE
+            </span>
+
+        </div>
+
+
+        <div class="activity-grid">
+
+
+            <div class="activity-item">
+
+                <div class="activity-number">
+                    01
+                </div>
+
+                <div>
+
+                    <strong>
+                        Text Password
+                    </strong>
+
+                    <span>
+                        Successfully verified
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="activity-item">
+
+                <div class="activity-number">
+                    02
+                </div>
+
+                <div>
+
+                    <strong>
+                        Graphical Password
+                    </strong>
+
+                    <span>
+                        Successfully verified
+                    </span>
+
+                </div>
+
+            </div>
+
+
+
+            <div class="activity-item">
+
+                <div class="activity-number">
+                    03
+                </div>
+
+                <div>
+
+                    <strong>
+                        Secure Session
+                    </strong>
+
+                    <span>
+                        Dashboard access granted
+                    </span>
+
+                </div>
+
+            </div>
+
+
+        </div>
+
+    </section>
+
+
+
+    <!-- =================================================
+         FOOTER ACTION
+    ================================================== -->
+
+    <section class="bottom-action">
+
+        <div>
+
+            <strong>
+                Your account is protected.
+            </strong>
+
+            <span>
+                SecureGraphical is actively protecting
+                your authenticated session.
+            </span>
+
+        </div>
+
+
+        <a
+            href="{{ url_for('logout') }}"
+            class="primary-button">
+
+            Sign Out Securely
+
+            <span>
+                →
+            </span>
+
+        </a>
+
+    </section>
 
 
 </main>
+
+
+
+<footer class="site-footer">
+
+    <div>
+
+        SecureGraphical
+
+    </div>
+
+    <span>
+
+        Improved Text-Based Shoulder-Surfing
+        Resistant Graphical Password Scheme
+
+    </span>
+
+</footer>
 
 
 </body>

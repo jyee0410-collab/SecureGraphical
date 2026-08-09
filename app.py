@@ -7,21 +7,64 @@ import os
 from functools import wraps
 from datetime import datetime, timedelta
 
-
 app = Flask(__name__)
+
+# =========================================================
+# CONFIGURATION
+# =========================================================
 
 app.secret_key = os.environ.get(
     "SECRET_KEY",
     "SecureGraphical-Development-Key-2026"
 )
 
-DATABASE = os.path.join(
-    app.root_path,
+DATABASE = os.environ.get(
+    "DATABASE_PATH",
     "securegraphical.db"
 )
 
-MAX_FAILED_ATTEMPTS = 5
-LOCKOUT_MINUTES = 10
+# 16 characters required by the proposed scheme
+CHARACTERS = list(
+    "abcdefgh12345678"
+)
+
+# 8 authentication colours
+COLORS = [
+    {
+        "name": "Red",
+        "hex": "#ef4444"
+    },
+    {
+        "name": "Orange",
+        "hex": "#f97316"
+    },
+    {
+        "name": "Yellow",
+        "hex": "#eab308"
+    },
+    {
+        "name": "Green",
+        "hex": "#22c55e"
+    },
+    {
+        "name": "Blue",
+        "hex": "#3b82f6"
+    },
+    {
+        "name": "Indigo",
+        "hex": "#6366f1"
+    },
+    {
+        "name": "Purple",
+        "hex": "#a855f7"
+    },
+    {
+        "name": "Pink",
+        "hex": "#ec4899"
+    }
+]
+
+MAX_LOGIN_ATTEMPTS = 5
 
 
 # =========================================================
@@ -38,100 +81,59 @@ def init_database():
 
     db = get_db()
 
+    # -----------------------------------------------------
+    # USERS
+    # -----------------------------------------------------
+
     db.execute("""
         CREATE TABLE IF NOT EXISTS users (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+
             name TEXT NOT NULL,
+
             email TEXT NOT NULL UNIQUE,
+
             password_hash TEXT NOT NULL,
+
             graphical_password_hash TEXT NOT NULL,
+
+            pass_color TEXT NOT NULL,
+
+            failed_attempts INTEGER DEFAULT 0,
+
+            account_locked INTEGER DEFAULT 0,
+
+            last_login TIMESTAMP,
+
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+
         )
     """)
+
+    # -----------------------------------------------------
+    # LOGIN ACTIVITY
+    # -----------------------------------------------------
 
     db.execute("""
-        CREATE TABLE IF NOT EXISTS login_activity (
+        CREATE TABLE IF NOT EXISTS login_attempts (
+
             id INTEGER PRIMARY KEY AUTOINCREMENT,
+
             user_id INTEGER,
-            email TEXT,
-            action TEXT NOT NULL,
-            status TEXT NOT NULL,
-            ip_address TEXT,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY(user_id) REFERENCES users(id)
+
+            success INTEGER NOT NULL,
+
+            attempt_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+            FOREIGN KEY(user_id)
+            REFERENCES users(id)
+
         )
     """)
 
-    # Safe migration for older databases
-    columns = [
-        row["name"]
-        for row in db.execute(
-            "PRAGMA table_info(users)"
-        ).fetchall()
-    ]
-
-    if "failed_attempts" not in columns:
-        db.execute(
-            "ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0"
-        )
-
-    if "locked_until" not in columns:
-        db.execute(
-            "ALTER TABLE users ADD COLUMN locked_until TEXT"
-        )
-
-    if "last_login" not in columns:
-        db.execute(
-            "ALTER TABLE users ADD COLUMN last_login TEXT"
-        )
-
     db.commit()
-    db.close()
 
-
-# =========================================================
-# ACTIVITY LOG
-# =========================================================
-
-def log_activity(
-    action,
-    status,
-    user_id=None,
-    email=None
-):
-
-    db = get_db()
-
-    ip_address = request.headers.get(
-        "X-Forwarded-For",
-        request.remote_addr
-    )
-
-    if ip_address and "," in ip_address:
-        ip_address = ip_address.split(",")[0].strip()
-
-    db.execute(
-        """
-        INSERT INTO login_activity
-        (
-            user_id,
-            email,
-            action,
-            status,
-            ip_address
-        )
-        VALUES (?, ?, ?, ?, ?)
-        """,
-        (
-            user_id,
-            email,
-            action,
-            status,
-            ip_address
-        )
-    )
-
-    db.commit()
     db.close()
 
 
@@ -142,6 +144,7 @@ def log_activity(
 def create_captcha():
 
     number1 = random.randint(1, 9)
+
     number2 = random.randint(1, 9)
 
     session["captcha_question"] = (
@@ -154,7 +157,7 @@ def create_captcha():
 
 
 # =========================================================
-# GRAPHICAL PASSWORD
+# GRAPHICAL PASSWORD HASH
 # =========================================================
 
 def hash_graphical_password(sequence):
@@ -164,6 +167,41 @@ def hash_graphical_password(sequence):
     return hashlib.sha256(
         sequence_text.encode("utf-8")
     ).hexdigest()
+
+
+# =========================================================
+# PASSWORD STRENGTH
+# =========================================================
+
+def password_strength(password):
+
+    score = 0
+
+    if len(password) >= 4:
+        score += 1
+
+    if len(password) >= 6:
+        score += 1
+
+    if any(c.isalpha() for c in password):
+        score += 1
+
+    if any(c.isdigit() for c in password):
+        score += 1
+
+    if any(c.isupper() for c in password):
+        score += 1
+
+    if any(not c.isalnum() for c in password):
+        score += 1
+
+    if score <= 2:
+        return "Weak"
+
+    if score <= 4:
+        return "Medium"
+
+    return "Strong"
 
 
 # =========================================================
@@ -192,6 +230,37 @@ def login_required(function):
 
 
 # =========================================================
+# LOG LOGIN ATTEMPT
+# =========================================================
+
+def log_login_attempt(
+    user_id,
+    success
+):
+
+    db = get_db()
+
+    db.execute(
+        """
+        INSERT INTO login_attempts
+        (
+            user_id,
+            success
+        )
+        VALUES (?, ?)
+        """,
+        (
+            user_id,
+            1 if success else 0
+        )
+    )
+
+    db.commit()
+
+    db.close()
+
+
+# =========================================================
 # HOME
 # =========================================================
 
@@ -202,8 +271,7 @@ def home():
         create_captcha()
 
     return render_template(
-        "index.html",
-        captcha_question=session["captcha_question"]
+        "index.html"
     )
 
 
@@ -242,8 +310,19 @@ def register():
         ""
     ).strip()
 
+    pass_color = request.form.get(
+        "pass_color",
+        ""
+    ).strip()
+
+
+    # -----------------------------------------------------
     # CAPTCHA
-    if captcha != session.get("captcha_answer"):
+    # -----------------------------------------------------
+
+    if captcha != session.get(
+        "captcha_answer"
+    ):
 
         flash(
             "Incorrect security verification.",
@@ -256,7 +335,11 @@ def register():
             url_for("home") + "#register"
         )
 
-    # Required fields
+
+    # -----------------------------------------------------
+    # REQUIRED FIELDS
+    # -----------------------------------------------------
+
     if not name or not email or not password:
 
         flash(
@@ -270,7 +353,29 @@ def register():
             url_for("home") + "#register"
         )
 
-    # Password match
+
+    # -----------------------------------------------------
+    # PASSWORD LENGTH
+    # -----------------------------------------------------
+
+    if len(password) < 4 or len(password) > 8:
+
+        flash(
+            "Password must contain 4 to 8 characters.",
+            "error"
+        )
+
+        create_captcha()
+
+        return redirect(
+            url_for("home") + "#register"
+        )
+
+
+    # -----------------------------------------------------
+    # PASSWORD MATCH
+    # -----------------------------------------------------
+
     if password != confirm_password:
 
         flash(
@@ -284,11 +389,20 @@ def register():
             url_for("home") + "#register"
         )
 
-    # Password length
-    if len(password) < 6:
+
+    # -----------------------------------------------------
+    # PASS COLOR
+    # -----------------------------------------------------
+
+    valid_colors = [
+        color["name"]
+        for color in COLORS
+    ]
+
+    if pass_color not in valid_colors:
 
         flash(
-            "Password must contain at least 6 characters.",
+            "Please select a valid pass-color.",
             "error"
         )
 
@@ -297,6 +411,11 @@ def register():
         return redirect(
             url_for("home") + "#register"
         )
+
+
+    # -----------------------------------------------------
+    # CHECK EMAIL
+    # -----------------------------------------------------
 
     db = get_db()
 
@@ -311,6 +430,7 @@ def register():
 
     db.close()
 
+
     if existing_user:
 
         flash(
@@ -324,12 +444,25 @@ def register():
             url_for("home") + "#register"
         )
 
+
+    # -----------------------------------------------------
+    # STORE TEMPORARY REGISTRATION DATA
+    # -----------------------------------------------------
+
     session["registration_name"] = name
+
     session["registration_email"] = email
 
     session["registration_password_hash"] = (
         generate_password_hash(password)
     )
+
+    session["registration_pass_color"] = pass_color
+
+
+    # -----------------------------------------------------
+    # GRAPHICAL PASSWORD
+    # -----------------------------------------------------
 
     return redirect(
         url_for("create_graphical_password")
@@ -352,12 +485,15 @@ def create_graphical_password():
             url_for("home")
         )
 
+
     if request.method == "POST":
 
         selected = request.form.getlist(
             "selected_images"
         )
 
+
+        # Exactly 3 characters for graphical sequence
         if len(selected) != 3:
 
             flash(
@@ -367,18 +503,52 @@ def create_graphical_password():
 
             return render_template(
                 "graphical_password.html",
-                mode="register"
+                mode="register",
+                characters=CHARACTERS,
+                colors=COLORS
             )
+
+
+        # Prevent duplicate characters
+        if len(set(selected)) != len(selected):
+
+            flash(
+                "Each graphical character must be different.",
+                "error"
+            )
+
+            return render_template(
+                "graphical_password.html",
+                mode="register",
+                characters=CHARACTERS,
+                colors=COLORS
+            )
+
 
         graphical_hash = hash_graphical_password(
             selected
         )
 
-        name = session["registration_name"]
-        email = session["registration_email"]
-        password_hash = session["registration_password_hash"]
+
+        name = session[
+            "registration_name"
+        ]
+
+        email = session[
+            "registration_email"
+        ]
+
+        password_hash = session[
+            "registration_password_hash"
+        ]
+
+        pass_color = session[
+            "registration_pass_color"
+        ]
+
 
         db = get_db()
+
 
         try:
 
@@ -389,21 +559,31 @@ def create_graphical_password():
                     name,
                     email,
                     password_hash,
-                    graphical_password_hash
+                    graphical_password_hash,
+                    pass_color
                 )
-                VALUES (?, ?, ?, ?)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
                     name,
                     email,
                     password_hash,
-                    graphical_hash
+                    graphical_hash,
+                    pass_color
                 )
             )
 
             db.commit()
 
+
         except sqlite3.IntegrityError:
+
+            db.rollback()
+
+            flash(
+                "This email is already registered.",
+                "error"
+            )
 
             db.close()
 
@@ -411,40 +591,60 @@ def create_graphical_password():
 
             create_captcha()
 
-            flash(
-                "This email is already registered.",
-                "error"
-            )
-
             return redirect(
                 url_for("home") + "#register"
             )
 
+
         finally:
 
-            try:
-                db.close()
-            except Exception:
-                pass
+            db.close()
 
-        session.pop("registration_name", None)
-        session.pop("registration_email", None)
-        session.pop("registration_password_hash", None)
+
+        # -------------------------------------------------
+        # CLEAR TEMP DATA
+        # -------------------------------------------------
+
+        session.pop(
+            "registration_name",
+            None
+        )
+
+        session.pop(
+            "registration_email",
+            None
+        )
+
+        session.pop(
+            "registration_password_hash",
+            None
+        )
+
+        session.pop(
+            "registration_pass_color",
+            None
+        )
+
 
         create_captcha()
 
+
         flash(
-            "Registration successful. Please login.",
+            "Registration successful! Please login.",
             "success"
         )
+
 
         return redirect(
             url_for("home") + "#login"
         )
 
+
     return render_template(
         "graphical_password.html",
-        mode="register"
+        mode="register",
+        characters=CHARACTERS,
+        colors=COLORS
     )
 
 
@@ -473,14 +673,14 @@ def login():
         ""
     ).strip()
 
-    # CAPTCHA
-    if captcha != session.get("captcha_answer"):
 
-        log_activity(
-            "CAPTCHA verification",
-            "Failed",
-            email=email
-        )
+    # -----------------------------------------------------
+    # CAPTCHA
+    # -----------------------------------------------------
+
+    if captcha != session.get(
+        "captcha_answer"
+    ):
 
         flash(
             "Incorrect security verification.",
@@ -492,6 +692,11 @@ def login():
         return redirect(
             url_for("home") + "#login"
         )
+
+
+    # -----------------------------------------------------
+    # FIND USER
+    # -----------------------------------------------------
 
     db = get_db()
 
@@ -506,13 +711,8 @@ def login():
 
     db.close()
 
-    if user is None:
 
-        log_activity(
-            "Password authentication",
-            "Failed",
-            email=email
-        )
+    if user is None:
 
         flash(
             "Invalid email or password.",
@@ -525,102 +725,17 @@ def login():
             url_for("home") + "#login"
         )
 
-    # Account lock
-    if user["locked_until"]:
 
-        try:
+    # -----------------------------------------------------
+    # ACCOUNT LOCK
+    # -----------------------------------------------------
 
-            locked_until = datetime.fromisoformat(
-                user["locked_until"]
-            )
+    if user["account_locked"]:
 
-            if datetime.now() < locked_until:
-
-                flash(
-                    "Account temporarily locked due to multiple failed attempts.",
-                    "error"
-                )
-
-                return redirect(
-                    url_for("home") + "#login"
-                )
-
-        except ValueError:
-            pass
-
-    # Password check
-    if not check_password_hash(
-        user["password_hash"],
-        password
-    ):
-
-        db = get_db()
-
-        attempts = (user["failed_attempts"] or 0) + 1
-
-        if attempts >= MAX_FAILED_ATTEMPTS:
-
-            locked_until = (
-                datetime.now()
-                + timedelta(minutes=LOCKOUT_MINUTES)
-            )
-
-            db.execute(
-                """
-                UPDATE users
-                SET failed_attempts = 0,
-                    locked_until = ?
-                WHERE id = ?
-                """,
-                (
-                    locked_until.isoformat(),
-                    user["id"]
-                )
-            )
-
-            db.commit()
-            db.close()
-
-            log_activity(
-                "Password authentication",
-                "Account locked",
-                user_id=user["id"],
-                email=email
-            )
-
-            flash(
-                "Too many failed attempts. Account locked for 10 minutes.",
-                "error"
-            )
-
-        else:
-
-            db.execute(
-                """
-                UPDATE users
-                SET failed_attempts = ?
-                WHERE id = ?
-                """,
-                (
-                    attempts,
-                    user["id"]
-                )
-            )
-
-            db.commit()
-            db.close()
-
-            log_activity(
-                "Password authentication",
-                "Failed",
-                user_id=user["id"],
-                email=email
-            )
-
-            flash(
-                "Invalid email or password.",
-                "error"
-            )
+        flash(
+            "This account is temporarily locked. Please use account recovery.",
+            "error"
+        )
 
         create_captcha()
 
@@ -628,16 +743,95 @@ def login():
             url_for("home") + "#login"
         )
 
+
+    # -----------------------------------------------------
+    # CHECK PASSWORD
+    # -----------------------------------------------------
+
+    if not check_password_hash(
+        user["password_hash"],
+        password
+    ):
+
+        db = get_db()
+
+        new_attempts = (
+            user["failed_attempts"] + 1
+        )
+
+        locked = (
+            1
+            if new_attempts >= MAX_LOGIN_ATTEMPTS
+            else 0
+        )
+
+        db.execute(
+            """
+            UPDATE users
+            SET
+                failed_attempts = ?,
+                account_locked = ?
+            WHERE id = ?
+            """,
+            (
+                new_attempts,
+                locked,
+                user["id"]
+            )
+        )
+
+        db.commit()
+
+        db.close()
+
+
+        log_login_attempt(
+            user["id"],
+            False
+        )
+
+
+        if locked:
+
+            flash(
+                "Too many failed attempts. Your account has been locked.",
+                "error"
+            )
+
+        else:
+
+            remaining = (
+                MAX_LOGIN_ATTEMPTS
+                - new_attempts
+            )
+
+            flash(
+                f"Invalid email or password. {remaining} attempts remaining.",
+                "error"
+            )
+
+
+        create_captcha()
+
+        return redirect(
+            url_for("home") + "#login"
+        )
+
+
+    # -----------------------------------------------------
+    # SUCCESSFUL TEXT PASSWORD
+    # -----------------------------------------------------
+
     session["login_user_id"] = user["id"]
+
     session["login_user_name"] = user["name"]
+
     session["login_user_email"] = user["email"]
 
-    log_activity(
-        "Password authentication",
-        "Successful",
-        user_id=user["id"],
-        email=email
-    )
+
+    # -----------------------------------------------------
+    # GO TO GRAPHICAL AUTHENTICATION
+    # -----------------------------------------------------
 
     return redirect(
         url_for("verify_graphical_password")
@@ -660,12 +854,15 @@ def verify_graphical_password():
             url_for("home")
         )
 
+
     if request.method == "POST":
 
         selected = request.form.getlist(
             "selected_images"
         )
 
+
+        # Exactly 3
         if len(selected) != 3:
 
             flash(
@@ -675,12 +872,32 @@ def verify_graphical_password():
 
             return render_template(
                 "graphical_password.html",
-                mode="login"
+                mode="login",
+                characters=CHARACTERS,
+                colors=COLORS
             )
+
+
+        # No duplicates
+        if len(set(selected)) != len(selected):
+
+            flash(
+                "Duplicate characters are not allowed.",
+                "error"
+            )
+
+            return render_template(
+                "graphical_password.html",
+                mode="login",
+                characters=CHARACTERS,
+                colors=COLORS
+            )
+
 
         submitted_hash = hash_graphical_password(
             selected
         )
+
 
         db = get_db()
 
@@ -695,75 +912,142 @@ def verify_graphical_password():
             )
         ).fetchone()
 
-        db.close()
 
-        if (
-            user is not None
-            and submitted_hash
-            == user["graphical_password_hash"]
-        ):
+        if user is None:
 
-            db = get_db()
+            db.close()
 
+            session.clear()
+
+            return redirect(
+                url_for("home")
+            )
+
+
+        # -------------------------------------------------
+        # VERIFY GRAPHICAL PASSWORD
+        # -------------------------------------------------
+
+        correct = (
+            submitted_hash
+            ==
+            user["graphical_password_hash"]
+        )
+
+
+        if correct:
+
+            # Reset failed attempts
             db.execute(
                 """
                 UPDATE users
-                SET failed_attempts = 0,
-                    locked_until = NULL,
-                    last_login = ?
+                SET
+                    failed_attempts = 0,
+                    account_locked = 0,
+                    last_login = CURRENT_TIMESTAMP
                 WHERE id = ?
                 """,
                 (
-                    datetime.now().isoformat(),
-                    user["id"]
+                    user["id"],
                 )
             )
 
             db.commit()
+
             db.close()
 
-            log_activity(
-                "Graphical password",
-                "Successful",
-                user_id=user["id"],
-                email=user["email"]
+
+            log_login_attempt(
+                user["id"],
+                True
             )
+
+
+            # -------------------------------------------------
+            # FINAL AUTHENTICATION SESSION
+            # -------------------------------------------------
 
             session.clear()
 
             session["user_id"] = user["id"]
+
             session["user_name"] = user["name"]
+
             session["user_email"] = user["email"]
+
+            session["authenticated"] = True
+
 
             return redirect(
                 url_for("dashboard")
             )
 
-        log_activity(
-            "Graphical password",
-            "Failed",
-            user_id=user["id"] if user else None,
-            email=user["email"] if user else None
+
+        # -------------------------------------------------
+        # WRONG GRAPHICAL PASSWORD
+        # -------------------------------------------------
+
+        db.execute(
+            """
+            UPDATE users
+            SET failed_attempts = failed_attempts + 1
+            WHERE id = ?
+            """,
+            (
+                user["id"],
+            )
         )
 
-        session.pop("login_user_id", None)
-        session.pop("login_user_name", None)
-        session.pop("login_user_email", None)
+        db.commit()
+
+        db.close()
+
+
+        log_login_attempt(
+            user["id"],
+            False
+        )
+
+
+        session.pop(
+            "login_user_id",
+            None
+        )
+
+        session.pop(
+            "login_user_name",
+            None
+        )
+
+        session.pop(
+            "login_user_email",
+            None
+        )
+
 
         create_captcha()
+
 
         flash(
             "Incorrect graphical password.",
             "error"
         )
 
+
         return redirect(
             url_for("home") + "#login"
         )
 
+
+    # -----------------------------------------------------
+    # DISPLAY GRAPHICAL AUTHENTICATION
+    # -----------------------------------------------------
+
     return render_template(
         "graphical_password.html",
-        mode="login"
+        mode="login",
+        characters=CHARACTERS,
+        colors=COLORS
     )
 
 
@@ -783,247 +1067,209 @@ def dashboard():
         FROM users
         WHERE id = ?
         """,
-        (session["user_id"],)
+        (
+            session["user_id"],
+        )
     ).fetchone()
 
-    activity = db.execute(
+
+    successful_logins = db.execute(
         """
-        SELECT *
-        FROM login_activity
+        SELECT COUNT(*)
+        FROM login_attempts
         WHERE user_id = ?
-        ORDER BY id DESC
-        LIMIT 5
+        AND success = 1
         """,
-        (session["user_id"],)
-    ).fetchall()
+        (
+            session["user_id"],
+        )
+    ).fetchone()[0]
+
+
+    failed_logins = db.execute(
+        """
+        SELECT COUNT(*)
+        FROM login_attempts
+        WHERE user_id = ?
+        AND success = 0
+        """,
+        (
+            session["user_id"],
+        )
+    ).fetchone()[0]
+
 
     db.close()
+
 
     return render_template(
         "dashboard.html",
-        user=user,
-        activity=activity
+        name=user["name"],
+        email=user["email"],
+        pass_color=user["pass_color"],
+        last_login=user["last_login"],
+        successful_logins=successful_logins,
+        failed_logins=failed_logins
     )
 
 
 # =========================================================
-# SECURITY CENTER
-# =========================================================
-
-@app.route("/security")
-@login_required
-def security():
-
-    db = get_db()
-
-    user = db.execute(
-        """
-        SELECT *
-        FROM users
-        WHERE id = ?
-        """,
-        (session["user_id"],)
-    ).fetchone()
-
-    db.close()
-
-    return render_template(
-        "security.html",
-        user=user
-    )
-
-
-# =========================================================
-# ACTIVITY
-# =========================================================
-
-@app.route("/activity")
-@login_required
-def activity():
-
-    db = get_db()
-
-    records = db.execute(
-        """
-        SELECT *
-        FROM login_activity
-        WHERE user_id = ?
-        ORDER BY id DESC
-        LIMIT 50
-        """,
-        (session["user_id"],)
-    ).fetchall()
-
-    db.close()
-
-    return render_template(
-        "activity.html",
-        records=records
-    )
-
-
-# =========================================================
-# ACCOUNT
-# =========================================================
-
-@app.route("/account")
-@login_required
-def account():
-
-    db = get_db()
-
-    user = db.execute(
-        """
-        SELECT *
-        FROM users
-        WHERE id = ?
-        """,
-        (session["user_id"],)
-    ).fetchone()
-
-    db.close()
-
-    return render_template(
-        "account.html",
-        user=user
-    )
-
-
-# =========================================================
-# SETTINGS
-# =========================================================
-
-@app.route("/settings")
-@login_required
-def settings():
-
-    db = get_db()
-
-    user = db.execute(
-        """
-        SELECT *
-        FROM users
-        WHERE id = ?
-        """,
-        (session["user_id"],)
-    ).fetchone()
-
-    db.close()
-
-    return render_template(
-        "settings.html",
-        user=user
-    )
-
-
-# =========================================================
-# CHANGE PASSWORD
+# ACCOUNT RECOVERY
 # =========================================================
 
 @app.route(
-    "/change-password",
-    methods=["POST"]
+    "/recovery",
+    methods=["GET", "POST"]
 )
-@login_required
-def change_password():
+def recovery():
 
-    current_password = request.form.get(
-        "current_password",
-        ""
-    )
+    if request.method == "POST":
 
-    new_password = request.form.get(
-        "new_password",
-        ""
-    )
+        email = request.form.get(
+            "email",
+            ""
+        ).strip().lower()
 
-    confirm_password = request.form.get(
-        "confirm_password",
-        ""
-    )
 
-    db = get_db()
+        db = get_db()
 
-    user = db.execute(
-        """
-        SELECT *
-        FROM users
-        WHERE id = ?
-        """,
-        (session["user_id"],)
-    ).fetchone()
-
-    if not check_password_hash(
-        user["password_hash"],
-        current_password
-    ):
+        user = db.execute(
+            """
+            SELECT id, email
+            FROM users
+            WHERE email = ?
+            """,
+            (
+                email,
+            )
+        ).fetchone()
 
         db.close()
 
-        flash(
-            "Current password is incorrect.",
-            "error"
-        )
+
+        if user is None:
+
+            flash(
+                "If the email exists, recovery instructions will be provided.",
+                "success"
+            )
+
+            return redirect(
+                url_for("recovery")
+            )
+
+
+        # Demo recovery flow
+        session["recovery_user_id"] = user["id"]
 
         return redirect(
-            url_for("settings")
+            url_for("reset_password")
         )
 
-    if len(new_password) < 6:
+
+    return render_template(
+        "recovery.html"
+    )
+
+
+# =========================================================
+# RESET PASSWORD
+# =========================================================
+
+@app.route(
+    "/reset-password",
+    methods=["GET", "POST"]
+)
+def reset_password():
+
+    if "recovery_user_id" not in session:
+
+        return redirect(
+            url_for("recovery")
+        )
+
+
+    if request.method == "POST":
+
+        password = request.form.get(
+            "password",
+            ""
+        )
+
+        confirm_password = request.form.get(
+            "confirm_password",
+            ""
+        )
+
+
+        if len(password) < 4 or len(password) > 8:
+
+            flash(
+                "Password must contain 4 to 8 characters.",
+                "error"
+            )
+
+            return redirect(
+                url_for("reset_password")
+            )
+
+
+        if password != confirm_password:
+
+            flash(
+                "Passwords do not match.",
+                "error"
+            )
+
+            return redirect(
+                url_for("reset_password")
+            )
+
+
+        db = get_db()
+
+        db.execute(
+            """
+            UPDATE users
+            SET
+                password_hash = ?,
+                failed_attempts = 0,
+                account_locked = 0
+            WHERE id = ?
+            """,
+            (
+                generate_password_hash(password),
+                session["recovery_user_id"]
+            )
+        )
+
+        db.commit()
 
         db.close()
 
-        flash(
-            "New password must contain at least 6 characters.",
-            "error"
+
+        session.pop(
+            "recovery_user_id",
+            None
         )
 
-        return redirect(
-            url_for("settings")
-        )
 
-    if new_password != confirm_password:
+        create_captcha()
 
-        db.close()
 
         flash(
-            "New passwords do not match.",
-            "error"
+            "Password reset successful. Please login again.",
+            "success"
         )
+
 
         return redirect(
-            url_for("settings")
+            url_for("home") + "#login"
         )
 
-    db.execute(
-        """
-        UPDATE users
-        SET password_hash = ?
-        WHERE id = ?
-        """,
-        (
-            generate_password_hash(new_password),
-            user["id"]
-        )
-    )
 
-    db.commit()
-    db.close()
-
-    log_activity(
-        "Password changed",
-        "Successful",
-        user_id=user["id"],
-        email=user["email"]
-    )
-
-    flash(
-        "Password updated successfully.",
-        "success"
-    )
-
-    return redirect(
-        url_for("settings")
+    return render_template(
+        "reset_password.html"
     )
 
 
@@ -1033,18 +1279,6 @@ def change_password():
 
 @app.route("/logout")
 def logout():
-
-    user_id = session.get("user_id")
-    email = session.get("user_email")
-
-    if user_id:
-
-        log_activity(
-            "Logout",
-            "Successful",
-            user_id=user_id,
-            email=email
-        )
 
     session.clear()
 
@@ -1056,7 +1290,7 @@ def logout():
 
 
 # =========================================================
-# START APPLICATION
+# APPLICATION START
 # =========================================================
 
 init_database()

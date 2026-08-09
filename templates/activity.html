@@ -1,1 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>SecureGraphical | Activity</title>
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<nav class="navbar">
+
+    <a
+        href="{{ url_for('dashboard') }}"
+        class="brand">
+
+        <div class="brand-icon">
+            ◆
+        </div>
+
+        <div class="brand-text">
+            Secure<span>Graphical</span>
+        </div>
+
+    </a>
+
+</nav>
+
+
+<main class="page container">
+
+    <div class="page-title">
+
+        <div class="eyebrow">
+            Activity Log
+        </div>
+
+        <h1>
+            Authentication history
+        </h1>
+
+        <p>
+            Review recent security and authentication events.
+        </p>
+
+    </div>
+
+
+    <div class="card section-card">
+
+        <div class="table-wrapper">
+
+            <table>
+
+                <thead>
+
+                    <tr>
+
+                        <th>
+                            Action
+                        </th>
+
+                        <th>
+                            Status
+                        </th>
+
+                        <th>
+                            IP Address
+                        </th>
+
+                        <th>
+                            Time
+                        </th>
+
+                    </tr>
+
+                </thead>
+
+
+                <tbody>
+
+                    {% for record in records %}
+
+                    <tr>
+
+                        <td>
+                            {{ record["action"] }}
+                        </td>
+
+                        <td>
+
+                            {% if record["status"] == "Successful" %}
+
+                                <span class="status-success">
+                                    ✓ Successful
+                                </span>
+
+                            {% else %}
+
+                                <span class="status-failed">
+                                    ! {{ record["status"] }}
+                                </span>
+
+                            {% endif %}
+
+                        </td>
+
+                        <td>
+                            {{ record["ip_address"] or "Unknown" }}
+                        </td>
+
+                        <td>
+                            {{ record["created_at"] }}
+                        </td>
+
+                    </tr>
+
+                    {% else %}
+
+                    <tr>
+
+                        <td colspan="4">
+                            No authentication activity recorded.
+                        </td>
+
+                    </tr>
+
+                    {% endfor %}
+
+                </tbody>
+
+            </table>
+
+        </div>
+
+    </div>
+
+</main>
+
+
+<footer class="footer">
+    SecureGraphical Activity Monitoring
+</footer>
+
+</body>
+
+</html>

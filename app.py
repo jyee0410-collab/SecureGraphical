@@ -6,14 +6,19 @@ import hashlib
 import os
 from functools import wraps
 
+
 app = Flask(__name__)
 
-# Use environment variable on Render.
-# Fall back to a local key for development.
+
+# =========================================================
+# SECRET KEY
+# =========================================================
+
 app.secret_key = os.environ.get(
     "SECRET_KEY",
     "SecureGraphical-Development-Key-2026"
 )
+
 
 DATABASE = "securegraphical.db"
 
@@ -29,6 +34,7 @@ def get_db():
 
 
 def init_database():
+
     db = get_db()
 
     db.execute("""
@@ -153,7 +159,10 @@ def register():
     ).strip()
 
 
+    # -----------------------------------------------------
     # CAPTCHA
+    # -----------------------------------------------------
+
     if captcha != session.get(
         "captcha_answer"
     ):
@@ -170,7 +179,10 @@ def register():
         )
 
 
+    # -----------------------------------------------------
     # EMPTY FIELDS
+    # -----------------------------------------------------
+
     if not name or not email or not password:
 
         flash(
@@ -185,7 +197,10 @@ def register():
         )
 
 
+    # -----------------------------------------------------
     # PASSWORD MATCH
+    # -----------------------------------------------------
+
     if password != confirm_password:
 
         flash(
@@ -200,7 +215,10 @@ def register():
         )
 
 
+    # -----------------------------------------------------
     # PASSWORD LENGTH
+    # -----------------------------------------------------
+
     if len(password) < 6:
 
         flash(
@@ -215,7 +233,10 @@ def register():
         )
 
 
+    # -----------------------------------------------------
     # CHECK EXISTING EMAIL
+    # -----------------------------------------------------
+
     db = get_db()
 
     existing_user = db.execute(
@@ -228,6 +249,7 @@ def register():
     ).fetchone()
 
     db.close()
+
 
     if existing_user:
 
@@ -243,7 +265,10 @@ def register():
         )
 
 
+    # -----------------------------------------------------
     # TEMPORARY REGISTRATION DATA
+    # -----------------------------------------------------
+
     session["registration_name"] = name
 
     session["registration_email"] = email
@@ -253,7 +278,10 @@ def register():
     )
 
 
+    # -----------------------------------------------------
     # GO TO GRAPHICAL PASSWORD
+    # -----------------------------------------------------
+
     return redirect(
         url_for("create_graphical_password")
     )
@@ -283,7 +311,10 @@ def create_graphical_password():
         )
 
 
-        # Must select exactly 3
+        # -------------------------------------------------
+        # MUST SELECT EXACTLY 3
+        # -------------------------------------------------
+
         if len(selected) != 3:
 
             flash(
@@ -296,6 +327,10 @@ def create_graphical_password():
                 mode="register"
             )
 
+
+        # -------------------------------------------------
+        # HASH GRAPHICAL PASSWORD
+        # -------------------------------------------------
 
         graphical_hash = hash_graphical_password(
             selected
@@ -314,6 +349,10 @@ def create_graphical_password():
             "registration_password_hash"
         ]
 
+
+        # -------------------------------------------------
+        # SAVE USER
+        # -------------------------------------------------
 
         db = get_db()
 
@@ -340,11 +379,25 @@ def create_graphical_password():
 
             db.commit()
 
+
         except sqlite3.IntegrityError:
 
             db.close()
 
-            session.clear()
+            session.pop(
+                "registration_name",
+                None
+            )
+
+            session.pop(
+                "registration_email",
+                None
+            )
+
+            session.pop(
+                "registration_password_hash",
+                None
+            )
 
             create_captcha()
 
@@ -357,15 +410,19 @@ def create_graphical_password():
                 url_for("home") + "#register"
             )
 
+
         finally:
 
             try:
                 db.close()
-            except:
+            except Exception:
                 pass
 
 
-        # Clear registration information
+        # -------------------------------------------------
+        # CLEAR REGISTRATION SESSION
+        # -------------------------------------------------
+
         session.pop(
             "registration_name",
             None
@@ -428,7 +485,10 @@ def login():
     ).strip()
 
 
+    # -----------------------------------------------------
     # CAPTCHA
+    # -----------------------------------------------------
+
     if captcha != session.get(
         "captcha_answer"
     ):
@@ -445,7 +505,10 @@ def login():
         )
 
 
+    # -----------------------------------------------------
     # FIND USER
+    # -----------------------------------------------------
+
     db = get_db()
 
     user = db.execute(
@@ -474,7 +537,10 @@ def login():
         )
 
 
+    # -----------------------------------------------------
     # CHECK PASSWORD
+    # -----------------------------------------------------
+
     if not check_password_hash(
         user["password_hash"],
         password
@@ -492,7 +558,10 @@ def login():
         )
 
 
+    # -----------------------------------------------------
     # TEMPORARY LOGIN SESSION
+    # -----------------------------------------------------
+
     session["login_user_id"] = user["id"]
 
     session["login_user_name"] = user["name"]
@@ -500,7 +569,10 @@ def login():
     session["login_user_email"] = user["email"]
 
 
+    # -----------------------------------------------------
     # GO TO GRAPHICAL PASSWORD
+    # -----------------------------------------------------
+
     return redirect(
         url_for("verify_graphical_password")
     )
@@ -530,6 +602,10 @@ def verify_graphical_password():
         )
 
 
+        # -------------------------------------------------
+        # MUST SELECT EXACTLY 3
+        # -------------------------------------------------
+
         if len(selected) != 3:
 
             flash(
@@ -543,10 +619,18 @@ def verify_graphical_password():
             )
 
 
+        # -------------------------------------------------
+        # HASH SUBMITTED GRAPHICAL PASSWORD
+        # -------------------------------------------------
+
         submitted_hash = hash_graphical_password(
             selected
         )
 
+
+        # -------------------------------------------------
+        # GET USER
+        # -------------------------------------------------
 
         db = get_db()
 
@@ -564,13 +648,20 @@ def verify_graphical_password():
         db.close()
 
 
+        # -------------------------------------------------
+        # VERIFY GRAPHICAL PASSWORD
+        # -------------------------------------------------
+
         if (
             user is not None
             and submitted_hash
             == user["graphical_password_hash"]
         ):
 
-            # Authentication successful
+            # ---------------------------------------------
+            # AUTHENTICATION SUCCESSFUL
+            # ---------------------------------------------
+
             session.clear()
 
             session["user_id"] = user["id"]
@@ -585,7 +676,10 @@ def verify_graphical_password():
             )
 
 
-        # Wrong graphical password
+        # -------------------------------------------------
+        # WRONG GRAPHICAL PASSWORD
+        # -------------------------------------------------
+
         session.pop(
             "login_user_id",
             None
@@ -647,6 +741,11 @@ def logout():
     session.clear()
 
     create_captcha()
+
+    flash(
+        "You have been logged out successfully.",
+        "success"
+    )
 
     return redirect(
         url_for("home")

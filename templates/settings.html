@@ -1,1 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
 
+<head>
+
+<meta charset="UTF-8">
+
+<meta name="viewport"
+      content="width=device-width, initial-scale=1.0">
+
+<title>SecureGraphical | Settings</title>
+
+<link
+    rel="stylesheet"
+    href="{{ url_for('static', filename='style.css') }}">
+
+</head>
+
+<body>
+
+<nav class="navbar">
+
+    <a
+        href="{{ url_for('dashboard') }}"
+        class="brand">
+
+        <div class="brand-icon">
+            ◆
+        </div>
+
+        <div class="brand-text">
+            Secure<span>Graphical</span>
+        </div>
+
+    </a>
+
+</nav>
+
+
+<main class="page container">
+
+    <div class="page-title">
+
+        <div class="eyebrow">
+            Security Settings
+        </div>
+
+        <h1>
+            Manage your security
+        </h1>
+
+        <p>
+            Update your account authentication credentials.
+        </p>
+
+    </div>
+
+
+    <div class="card form-card">
+
+        <h2 style="font-size:17px;margin-bottom:18px;">
+            Change Password
+        </h2>
+
+
+        <form
+            method="POST"
+            action="{{ url_for('change_password') }}">
+
+            <div class="form-group">
+
+                <label>
+                    Current Password
+                </label>
+
+                <input
+                    type="password"
+                    name="current_password"
+                    required>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    New Password
+                </label>
+
+                <input
+                    type="password"
+                    name="new_password"
+                    minlength="6"
+                    required>
+
+                <div class="form-note">
+                    Minimum 6 characters.
+                </div>
+
+            </div>
+
+
+            <div class="form-group">
+
+                <label>
+                    Confirm New Password
+                </label>
+
+                <input
+                    type="password"
+                    name="confirm_password"
+                    minlength="6"
+                    required>
+
+            </div>
+
+
+            <button
+                type="submit"
+                class="button">
+
+                Update Password
+
+            </button>
+
+        </form>
+
+    </div>
+
+</main>
+
+
+<footer class="footer">
+    SecureGraphical Security Settings
+</footer>
+
+</body>
+
+</html>

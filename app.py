@@ -21,6 +21,12 @@ import os
 from functools import wraps
 from datetime import datetime, timedelta
 
+# =========================================================
+
+# APPLICATION
+
+# =========================================================
+
 app = Flask(**name**)
 
 # =========================================================
@@ -58,7 +64,7 @@ def init_database():
 db = get_db()
 
 # -----------------------------------------------------
-# USERS
+# USERS TABLE
 # -----------------------------------------------------
 
 db.execute("""
@@ -86,7 +92,7 @@ db.execute("""
 """)
 
 # -----------------------------------------------------
-# AUTHENTICATION HISTORY
+# AUTHENTICATION HISTORY TABLE
 # -----------------------------------------------------
 
 db.execute("""
@@ -146,47 +152,68 @@ LOCKOUT_MINUTES = 5
 
 # =========================================================
 
-def create_captcha():
+def create_login_captcha():
 
 ```
 number1 = random.randint(1, 9)
 
 number2 = random.randint(1, 9)
 
-question = (
+session["login_captcha_question"] = (
     f"{number1} + {number2} = ?"
 )
 
-answer = str(
+session["login_captcha_answer"] = str(
     number1 + number2
 )
-
-session["captcha_question"] = question
-
-session["captcha_answer"] = answer
-
-return question
 ```
 
-# =========================================================
+def create_register_captcha():
 
-# CAPTCHA VALIDATION
+```
+number1 = random.randint(1, 9)
 
-# =========================================================
+number2 = random.randint(1, 9)
 
-def validate_captcha(user_answer):
+session["register_captcha_question"] = (
+    f"{number1} + {number2} = ?"
+)
+
+session["register_captcha_answer"] = str(
+    number1 + number2
+)
+```
+
+def validate_login_captcha(answer):
 
 ```
 correct_answer = session.get(
-    "captcha_answer"
+    "login_captcha_answer"
 )
 
-if not correct_answer:
+if correct_answer is None:
 
     return False
 
 return (
-    user_answer.strip()
+    answer.strip()
+    == str(correct_answer)
+)
+```
+
+def validate_register_captcha(answer):
+
+```
+correct_answer = session.get(
+    "register_captcha_answer"
+)
+
+if correct_answer is None:
+
+    return False
+
+return (
+    answer.strip()
     == str(correct_answer)
 )
 ```
@@ -308,7 +335,7 @@ return hashlib.sha256(
 
 # =========================================================
 
-# AUTH HISTORY
+# AUTHENTICATION HISTORY
 
 # =========================================================
 
@@ -348,7 +375,7 @@ db.close()
 
 # =========================================================
 
-# LOGIN PROTECTION
+# LOGIN REQUIRED DECORATOR
 
 # =========================================================
 
@@ -387,18 +414,35 @@ return wrapper
 def home():
 
 ```
-# Always make sure CAPTCHA exists
-if "captcha_question" not in session:
+# Create Login CAPTCHA if missing
 
-    create_captcha()
+if (
+    "login_captcha_question"
+    not in session
+):
 
-# IMPORTANT:
-# Pass captcha_question to index.html
+    create_login_captcha()
+
+
+# Create Register CAPTCHA if missing
+
+if (
+    "register_captcha_question"
+    not in session
+):
+
+    create_register_captcha()
+
 
 return render_template(
     "index.html",
-    captcha_question=session.get(
-        "captcha_question"
+
+    login_captcha_question=session.get(
+        "login_captcha_question"
+    ),
+
+    register_captcha_question=session.get(
+        "register_captcha_question"
     )
 )
 ```
@@ -421,20 +465,24 @@ name = request.form.get(
     ""
 ).strip()
 
+
 email = request.form.get(
     "email",
     ""
 ).strip().lower()
+
 
 password = request.form.get(
     "password",
     ""
 )
 
+
 confirm_password = request.form.get(
     "confirm_password",
     ""
 )
+
 
 captcha = request.form.get(
     "captcha",
@@ -443,17 +491,19 @@ captcha = request.form.get(
 
 
 # -----------------------------------------------------
-# CAPTCHA
+# REGISTER CAPTCHA
 # -----------------------------------------------------
 
-if not validate_captcha(captcha):
+if not validate_register_captcha(
+    captcha
+):
 
     flash(
         "Incorrect security verification.",
         "error"
     )
 
-    create_captcha()
+    create_register_captcha()
 
     return redirect(
         url_for("home")
@@ -462,8 +512,9 @@ if not validate_captcha(captcha):
 
 
 # CAPTCHA is single-use
+
 session.pop(
-    "captcha_answer",
+    "register_captcha_answer",
     None
 )
 
@@ -479,7 +530,7 @@ if not name:
         "error"
     )
 
-    create_captcha()
+    create_register_captcha()
 
     return redirect(
         url_for("home")
@@ -494,7 +545,7 @@ if not email:
         "error"
     )
 
-    create_captcha()
+    create_register_captcha()
 
     return redirect(
         url_for("home")
@@ -509,7 +560,7 @@ if not password:
         "error"
     )
 
-    create_captcha()
+    create_register_captcha()
 
     return redirect(
         url_for("home")
@@ -525,6 +576,7 @@ password_errors = validate_password(
     password
 )
 
+
 if password_errors:
 
     flash(
@@ -532,7 +584,7 @@ if password_errors:
         "error"
     )
 
-    create_captcha()
+    create_register_captcha()
 
     return redirect(
         url_for("home")
@@ -551,7 +603,7 @@ if password != confirm_password:
         "error"
     )
 
-    create_captcha()
+    create_register_captcha()
 
     return redirect(
         url_for("home")
@@ -565,6 +617,7 @@ if password != confirm_password:
 
 db = get_db()
 
+
 existing_user = db.execute(
     """
     SELECT id
@@ -573,6 +626,7 @@ existing_user = db.execute(
     """,
     (email,)
 ).fetchone()
+
 
 db.close()
 
@@ -584,7 +638,7 @@ if existing_user:
         "error"
     )
 
-    create_captcha()
+    create_register_captcha()
 
     return redirect(
         url_for("home")
@@ -606,7 +660,7 @@ session["registration_password_hash"] = (
 
 
 # -----------------------------------------------------
-# GO TO GRAPHICAL PASSWORD
+# GO TO GRAPHICAL PASSWORD SETUP
 # -----------------------------------------------------
 
 return redirect(
@@ -644,6 +698,7 @@ if request.method == "POST":
     selected = request.form.getlist(
         "selected_characters"
     )
+
 
     pass_color = request.form.get(
         "pass_color",
@@ -750,9 +805,11 @@ if request.method == "POST":
         "registration_name"
     ]
 
+
     email = session[
         "registration_email"
     ]
+
 
     password_hash = session[
         "registration_password_hash"
@@ -785,6 +842,7 @@ if request.method == "POST":
             )
         )
 
+
         db.commit()
 
 
@@ -794,14 +852,31 @@ if request.method == "POST":
 
         db.close()
 
+
         flash(
             "This email is already registered.",
             "error"
         )
 
-        session.clear()
 
-        create_captcha()
+        session.pop(
+            "registration_name",
+            None
+        )
+
+        session.pop(
+            "registration_email",
+            None
+        )
+
+        session.pop(
+            "registration_password_hash",
+            None
+        )
+
+
+        create_register_captcha()
+
 
         return redirect(
             url_for("home")
@@ -813,7 +888,7 @@ if request.method == "POST":
 
         try:
             db.close()
-        except:
+        except Exception:
             pass
 
 
@@ -823,6 +898,7 @@ if request.method == "POST":
 
     db = get_db()
 
+
     user = db.execute(
         """
         SELECT id
@@ -831,6 +907,7 @@ if request.method == "POST":
         """,
         (email,)
     ).fetchone()
+
 
     db.close()
 
@@ -846,18 +923,20 @@ if request.method == "POST":
 
 
     # -------------------------------------------------
-    # CLEAR TEMP DATA
-    # -------------------------------------------------
+    # CLEAR TEMPORARY DATA
+    # -----------------------------------------------------
 
     session.pop(
         "registration_name",
         None
     )
 
+
     session.pop(
         "registration_email",
         None
     )
+
 
     session.pop(
         "registration_password_hash",
@@ -865,7 +944,11 @@ if request.method == "POST":
     )
 
 
-    create_captcha()
+    # Create fresh CAPTCHAs
+
+    create_login_captcha()
+
+    create_register_captcha()
 
 
     flash(
@@ -906,10 +989,12 @@ email = request.form.get(
     ""
 ).strip().lower()
 
+
 password = request.form.get(
     "password",
     ""
 )
+
 
 captcha = request.form.get(
     "captcha",
@@ -918,17 +1003,19 @@ captcha = request.form.get(
 
 
 # -----------------------------------------------------
-# CAPTCHA
+# LOGIN CAPTCHA
 # -----------------------------------------------------
 
-if not validate_captcha(captcha):
+if not validate_login_captcha(
+    captcha
+):
 
     flash(
         "Incorrect security verification.",
         "error"
     )
 
-    create_captcha()
+    create_login_captcha()
 
     return redirect(
         url_for("home")
@@ -937,8 +1024,9 @@ if not validate_captcha(captcha):
 
 
 # CAPTCHA is single-use
+
 session.pop(
-    "captcha_answer",
+    "login_captcha_answer",
     None
 )
 
@@ -949,6 +1037,7 @@ session.pop(
 
 db = get_db()
 
+
 user = db.execute(
     """
     SELECT *
@@ -957,6 +1046,7 @@ user = db.execute(
     """,
     (email,)
 ).fetchone()
+
 
 db.close()
 
@@ -968,7 +1058,7 @@ if user is None:
         "error"
     )
 
-    create_captcha()
+    create_login_captcha()
 
     return redirect(
         url_for("home")
@@ -988,12 +1078,14 @@ if user["locked_until"]:
             user["locked_until"]
         )
 
+
         if datetime.now() < locked_until:
 
             remaining_seconds = (
                 locked_until
                 - datetime.now()
             ).total_seconds()
+
 
             remaining = max(
                 1,
@@ -1002,15 +1094,18 @@ if user["locked_until"]:
                 ) + 1
             )
 
+
             flash(
                 f"Account temporarily locked. Try again in {remaining} minute(s).",
                 "error"
             )
 
+
             return redirect(
                 url_for("home")
                 + "#login"
             )
+
 
     except ValueError:
 
@@ -1090,7 +1185,8 @@ if not check_password_hash(
             """
             UPDATE users
 
-            SET failed_attempts = ?
+            SET
+                failed_attempts = ?
 
             WHERE id = ?
             """,
@@ -1099,6 +1195,7 @@ if not check_password_hash(
                 user["id"]
             )
         )
+
 
         db.commit()
 
@@ -1119,7 +1216,8 @@ if not check_password_hash(
         )
 
 
-    create_captcha()
+    create_login_captcha()
+
 
     return redirect(
         url_for("home")
@@ -1144,6 +1242,7 @@ session["login_user_email"] = user["email"]
 
 db = get_db()
 
+
 db.execute(
     """
     UPDATE users
@@ -1156,6 +1255,7 @@ db.execute(
     """,
     (user["id"],)
 )
+
 
 db.commit()
 
@@ -1209,6 +1309,7 @@ if request.method == "POST":
     selected = request.form.getlist(
         "selected_characters"
     )
+
 
     pass_color = request.form.get(
         "pass_color",
@@ -1284,6 +1385,7 @@ if request.method == "POST":
 
     db = get_db()
 
+
     user = db.execute(
         """
         SELECT *
@@ -1295,6 +1397,7 @@ if request.method == "POST":
         )
     ).fetchone()
 
+
     db.close()
 
 
@@ -1302,12 +1405,16 @@ if request.method == "POST":
 
         session.clear()
 
-        create_captcha()
+        create_login_captcha()
+
+        create_register_captcha()
+
 
         flash(
             "Authentication session expired.",
             "error"
         )
+
 
         return redirect(
             url_for("home")
@@ -1327,7 +1434,7 @@ if request.method == "POST":
 
 
     # -------------------------------------------------
-    # VERIFY
+    # VERIFY GRAPHICAL PASSWORD
     # -------------------------------------------------
 
     password_correct = (
@@ -1344,16 +1451,17 @@ if request.method == "POST":
     )
 
 
+    # -------------------------------------------------
+    # SUCCESS
+    # -------------------------------------------------
+
     if (
         password_correct
         and color_correct
     ):
 
-        # ---------------------------------------------
-        # AUTHENTICATION SUCCESSFUL
-        # ---------------------------------------------
-
         session.clear()
+
 
         session["user_id"] = user["id"]
 
@@ -1378,8 +1486,8 @@ if request.method == "POST":
 
 
     # -------------------------------------------------
-    # WRONG GRAPHICAL PASSWORD
-    # -------------------------------------------------
+    # FAILED GRAPHICAL AUTHENTICATION
+    # -----------------------------------------------------
 
     record_auth_event(
         user["id"],
@@ -1394,10 +1502,12 @@ if request.method == "POST":
         None
     )
 
+
     session.pop(
         "login_user_name",
         None
     )
+
 
     session.pop(
         "login_user_email",
@@ -1405,7 +1515,7 @@ if request.method == "POST":
     )
 
 
-    create_captcha()
+    create_login_captcha()
 
 
     flash(
@@ -1443,7 +1553,7 @@ db = get_db()
 
 
 # -----------------------------------------------------
-# USER
+# GET USER
 # -----------------------------------------------------
 
 user = db.execute(
@@ -1459,7 +1569,7 @@ user = db.execute(
 
 
 # -----------------------------------------------------
-# RECENT AUTHENTICATION HISTORY
+# AUTHENTICATION HISTORY
 # -----------------------------------------------------
 
 history = db.execute(
@@ -1490,6 +1600,11 @@ if user is None:
 
     session.clear()
 
+    create_login_captcha()
+
+    create_register_captcha()
+
+
     return redirect(
         url_for("home")
     )
@@ -1504,10 +1619,15 @@ security_score = 100
 
 return render_template(
     "dashboard.html",
+
     name=user["name"],
+
     email=user["email"],
+
     pass_color=user["pass_color"],
+
     security_score=security_score,
+
     history=history
 )
 ```
@@ -1524,12 +1644,17 @@ def logout():
 ```
 session.clear()
 
-create_captcha()
+
+create_login_captcha()
+
+create_register_captcha()
+
 
 flash(
     "You have been securely logged out.",
     "success"
 )
+
 
 return redirect(
     url_for("home")
@@ -1538,11 +1663,17 @@ return redirect(
 
 # =========================================================
 
-# START APPLICATION
+# INITIALIZE DATABASE
 
 # =========================================================
 
 init_database()
+
+# =========================================================
+
+# START APPLICATION
+
+# =========================================================
 
 if **name** == "**main**":
 
@@ -1553,6 +1684,7 @@ port = int(
         5000
     )
 )
+
 
 app.run(
     host="0.0.0.0",

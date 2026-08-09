@@ -17,59 +17,47 @@ from werkzeug.security import (
 import sqlite3
 import random
 import hashlib
-import hmac
-import os
 import secrets
 from functools import wraps
-from datetime import datetime, timedelta
+from datetime import timedelta
 
 
-# =========================================================
+# ============================================================
 # APPLICATION CONFIGURATION
-# =========================================================
+# ============================================================
 
 app = Flask(__name__)
 
-# ---------------------------------------------------------
-# IMPORTANT:
-# In a real deployment, use an environment variable:
-#
-# set SECRET_KEY=your-long-random-secret
-#
-# The fallback value is only for local development.
-# ---------------------------------------------------------
-
-app.secret_key = os.environ.get(
-    "SECRET_KEY",
-    "SecureGraphical-Development-Key-Change-In-Production"
-)
+# Secret key used to sign Flask sessions.
+# For a real deployment, store this in an environment variable.
+app.secret_key = "SecureGraphical-My-Secret-Key-2026"
 
 DATABASE = "securegraphical.db"
 
-# Session security
+# Session security configuration
 app.config["SESSION_COOKIE_HTTPONLY"] = True
 app.config["SESSION_COOKIE_SAMESITE"] = "Lax"
 
-# Set to True when deployed through HTTPS.
+# Use True when the application is deployed behind HTTPS.
 app.config["SESSION_COOKIE_SECURE"] = False
 
-# Authentication security
+# Session lifetime
+app.permanent_session_lifetime = timedelta(minutes=30)
+
+
+# ============================================================
+# SECURITY CONFIGURATION
+# ============================================================
+
 MAX_LOGIN_ATTEMPTS = 5
-LOCKOUT_MINUTES = 5
 
-# CAPTCHA security
-CAPTCHA_LENGTH = 5
-
-# Graphical password
 GRAPHICAL_PASSWORD_LENGTH = 3
 
-# Supported graphical password alphabet
-GRAPHICAL_ALPHABET = list(
+CHARACTERS = list(
     "abcdefgh12345678"
 )
 
-# Eight colour sectors
-COLOUR_SECTORS = [
+COLOURS = [
     "red",
     "orange",
     "yellow",
@@ -81,11 +69,14 @@ COLOUR_SECTORS = [
 ]
 
 
-# =========================================================
+# ============================================================
 # DATABASE
-# =========================================================
+# ============================================================
 
 def get_db():
+    """
+    Open SQLite database connection.
+    """
 
     db = sqlite3.connect(
         DATABASE,
@@ -98,16 +89,15 @@ def get_db():
 
 
 def init_database():
+    """
+    Create required database tables if they do not exist.
+    """
 
     db = get_db()
 
-    # -----------------------------------------------------
-    # USERS TABLE
-    # -----------------------------------------------------
-
-    db.execute("""
+    db.execute(
+        """
         CREATE TABLE IF NOT EXISTS users (
-
             id INTEGER PRIMARY KEY AUTOINCREMENT,
 
             name TEXT NOT NULL,
@@ -118,393 +108,193 @@ def init_database():
 
             graphical_password_hash TEXT NOT NULL,
 
-            created_at TIMESTAMP
-                DEFAULT CURRENT_TIMESTAMP,
-
-            failed_attempts INTEGER
-                DEFAULT 0,
-
-            locked_until TIMESTAMP,
-
-            last_login TIMESTAMP
-
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-
-    # -----------------------------------------------------
-    # SECURITY AUDIT LOG
-    # -----------------------------------------------------
-
-    db.execute("""
-        CREATE TABLE IF NOT EXISTS security_logs (
-
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-            user_id INTEGER,
-
-            email TEXT,
-
-            event TEXT NOT NULL,
-
-            ip_address TEXT,
-
-            user_agent TEXT,
-
-            created_at TIMESTAMP
-                DEFAULT CURRENT_TIMESTAMP
-
-        )
-    """)
+        """
+    )
 
     db.commit()
 
     db.close()
 
 
-# =========================================================
-# SECURITY AUDIT LOGGING
-# =========================================================
-
-def get_client_ip():
-
-    # Basic deployment-friendly IP detection.
-    # If your application is behind a trusted proxy,
-    # configure the proxy correctly before trusting headers.
-
-    return request.remote_addr or "unknown"
-
-
-def log_security_event(
-    event,
-    user_id=None,
-    email=None
-):
-
-    try:
-
-        db = get_db()
-
-        db.execute(
-            """
-            INSERT INTO security_logs
-            (
-                user_id,
-                email,
-                event,
-                ip_address,
-                user_agent
-            )
-            VALUES (?, ?, ?, ?, ?)
-            """,
-            (
-                user_id,
-                email,
-                event,
-                get_client_ip(),
-                request.headers.get(
-                    "User-Agent",
-                    "unknown"
-                )
-            )
-        )
-
-        db.commit()
-
-        db.close()
-
-    except Exception:
-
-        # Logging should never crash authentication.
-        pass
-
-
-# =========================================================
+# ============================================================
 # CAPTCHA
-# =========================================================
+# ============================================================
 
 def create_captcha():
+    """
+    Generate a new arithmetic CAPTCHA.
+    """
 
-    number1 = random.randint(1, 9)
+    number1 = secrets.randbelow(9) + 1
+    number2 = secrets.randbelow(9) + 1
 
-    number2 = random.randint(1, 9)
-
-    # Add a random operation so the CAPTCHA
-    # is less predictable than a fixed format.
-
-    operation = random.choice([
-        "+",
-        "-"
-    ])
-
-    if operation == "+":
-
-        answer = number1 + number2
-
-    else:
-
-        # Avoid negative answers for usability.
-        if number2 > number1:
-            number1, number2 = number2, number1
-
-        answer = number1 - number2
-
-    question = (
-        f"{number1} {operation} {number2} = ?"
+    session["captcha_question"] = (
+        f"{number1} + {number2} = ?"
     )
 
-    # Store only the answer required for the current
-    # session. It is never stored in the database.
-
-    session["captcha_question"] = question
-
-    session["captcha_answer"] = str(answer)
-
-    # Give CAPTCHA a short lifetime.
-
-    session["captcha_created"] = datetime.utcnow().isoformat()
+    session["captcha_answer"] = str(
+        number1 + number2
+    )
 
 
-def captcha_is_valid(user_answer):
+def verify_captcha(user_answer):
+    """
+    Verify CAPTCHA answer.
+    """
 
-    stored_answer = session.get(
+    expected = session.get(
         "captcha_answer"
     )
 
-    created = session.get(
-        "captcha_created"
-    )
-
-    if not stored_answer or not created:
-
+    if expected is None:
         return False
 
-    try:
-
-        created_time = datetime.fromisoformat(
-            created
-        )
-
-        if datetime.utcnow() - created_time > timedelta(
-            minutes=5
-        ):
-
-            return False
-
-    except Exception:
-
-        return False
-
-    return hmac.compare_digest(
+    return secrets.compare_digest(
         str(user_answer).strip(),
-        str(stored_answer)
+        str(expected)
     )
 
 
-def consume_captcha():
-
-    session.pop(
-        "captcha_answer",
-        None
-    )
-
-    session.pop(
-        "captcha_question",
-        None
-    )
-
-    session.pop(
-        "captcha_created",
-        None
-    )
-
-
-# =========================================================
+# ============================================================
 # GRAPHICAL PASSWORD HASHING
-# =========================================================
+# ============================================================
 
-def hash_graphical_password(
-    sequence,
-    rotation_offset=0
-):
-
+def hash_graphical_password(sequence):
     """
-    Creates a deterministic authentication hash.
-
-    The graphical password consists of:
-        - selected characters
-        - dynamic rotation state
+    Convert graphical password sequence into
+    a SHA-256 hash.
 
     Example:
 
-        a-7-b
-        rotation = 2
+        ["a", "4", "h"]
 
     becomes:
 
-        a-7-b|rotation:2
+        a-4-h
     """
 
     sequence_text = "-".join(
         sequence
     )
 
-    authentication_material = (
-        f"{sequence_text}|rotation:{rotation_offset}"
-    )
-
     return hashlib.sha256(
-        authentication_material.encode(
-            "utf-8"
-        )
+        sequence_text.encode("utf-8")
     ).hexdigest()
 
 
-# =========================================================
+# ============================================================
 # GRAPHICAL PASSWORD VALIDATION
-# =========================================================
+# ============================================================
 
-def validate_graphical_sequence(
-    sequence
-):
+def validate_graphical_selection(sequence):
+    """
+    Validate graphical password selection.
 
-    if not sequence:
-
-        return False
+    Requirements:
+    - exactly 3 characters
+    - characters must belong to approved alphabet
+    - no duplicate characters
+    """
 
     if len(sequence) != GRAPHICAL_PASSWORD_LENGTH:
-
         return False
 
-    for character in sequence:
-
-        if character not in GRAPHICAL_ALPHABET:
-
-            return False
-
-    # Prevent duplicate character selections.
-    #
-    # This makes the graphical password a sequence
-    # of three distinct symbols.
+    if any(
+        character not in CHARACTERS
+        for character in sequence
+    ):
+        return False
 
     if len(set(sequence)) != len(sequence):
-
         return False
 
     return True
 
 
-# =========================================================
-# LOGIN LOCKOUT
-# =========================================================
+# ============================================================
+# RANDOM GRAPHICAL AUTHENTICATION STATE
+# ============================================================
 
-def is_account_locked(user):
+def create_graphical_state():
+    """
+    Create a new random graphical authentication state.
 
-    locked_until = user["locked_until"]
+    The 16 characters are shuffled every time the graphical
+    authentication page is opened.
 
-    if not locked_until:
+    Eight colour sectors are also randomly rotated.
+    """
 
-        return False
+    characters = CHARACTERS.copy()
 
-    try:
-
-        lock_time = datetime.fromisoformat(
-            locked_until
-        )
-
-        if datetime.utcnow() < lock_time:
-
-            return True
-
-    except Exception:
-
-        return False
-
-    return False
-
-
-def reset_login_attempts(
-    user_id
-):
-
-    db = get_db()
-
-    db.execute(
-        """
-        UPDATE users
-
-        SET failed_attempts = 0,
-            locked_until = NULL
-
-        WHERE id = ?
-        """,
-        (user_id,)
+    random.SystemRandom().shuffle(
+        characters
     )
 
-    db.commit()
-
-    db.close()
-
-
-def register_failed_attempt(
-    user_id
-):
-
-    db = get_db()
-
-    user = db.execute(
-        """
-        SELECT failed_attempts
-        FROM users
-        WHERE id = ?
-        """,
-        (user_id,)
-    ).fetchone()
-
-    if user is None:
-
-        db.close()
-
-        return
-
-    attempts = (
-        user["failed_attempts"] or 0
-    ) + 1
-
-    locked_until = None
-
-    if attempts >= MAX_LOGIN_ATTEMPTS:
-
-        locked_until = (
-            datetime.utcnow()
-            + timedelta(
-                minutes=LOCKOUT_MINUTES
-            )
-        ).isoformat()
-
-    db.execute(
-        """
-        UPDATE users
-
-        SET failed_attempts = ?,
-            locked_until = ?
-
-        WHERE id = ?
-        """,
-        (
-            attempts,
-            locked_until,
-            user_id
-        )
+    colour_rotation = (
+        secrets.randbelow(8)
     )
 
-    db.commit()
+    session["graphical_characters"] = characters
 
-    db.close()
+    session["graphical_rotation"] = (
+        colour_rotation
+    )
+
+    # Generate a random authentication nonce.
+    session["graphical_nonce"] = (
+        secrets.token_hex(16)
+    )
 
 
-# =========================================================
-# LOGIN PROTECTION
-# =========================================================
+# ============================================================
+# LOGIN ATTEMPT PROTECTION
+# ============================================================
+
+def reset_login_attempts():
+    """
+    Reset failed login attempts.
+    """
+
+    session["login_attempts"] = 0
+
+
+def increase_login_attempts():
+    """
+    Increase failed login attempts.
+    """
+
+    attempts = session.get(
+        "login_attempts",
+        0
+    )
+
+    attempts += 1
+
+    session["login_attempts"] = attempts
+
+    return attempts
+
+
+def login_blocked():
+    """
+    Determine whether the current session has
+    exceeded the maximum number of login attempts.
+    """
+
+    attempts = session.get(
+        "login_attempts",
+        0
+    )
+
+    return attempts >= MAX_LOGIN_ATTEMPTS
+
+
+# ============================================================
+# LOGIN REQUIRED DECORATOR
+# ============================================================
 
 def login_required(function):
 
@@ -530,13 +320,14 @@ def login_required(function):
     return wrapper
 
 
-# =========================================================
+# ============================================================
 # HOME
-# =========================================================
+# ============================================================
 
 @app.route("/")
 def home():
 
+    # Create CAPTCHA when a new session starts.
     if (
         "captcha_question"
         not in session
@@ -549,9 +340,9 @@ def home():
     )
 
 
-# =========================================================
+# ============================================================
 # REGISTER
-# =========================================================
+# ============================================================
 
 @app.route(
     "/register",
@@ -584,16 +375,17 @@ def register():
         ""
     ).strip()
 
-    # -----------------------------------------------------
-    # CAPTCHA
-    # -----------------------------------------------------
 
-    if not captcha_is_valid(
+    # --------------------------------------------------------
+    # CAPTCHA
+    # --------------------------------------------------------
+
+    if not verify_captcha(
         captcha
     ):
 
         flash(
-            "Incorrect or expired security verification.",
+            "Incorrect security verification.",
             "error"
         )
 
@@ -604,11 +396,10 @@ def register():
             + "#register"
         )
 
-    consume_captcha()
 
-    # -----------------------------------------------------
+    # --------------------------------------------------------
     # REQUIRED FIELDS
-    # -----------------------------------------------------
+    # --------------------------------------------------------
 
     if not name or not email or not password:
 
@@ -624,9 +415,32 @@ def register():
             + "#register"
         )
 
-    # -----------------------------------------------------
-    # PASSWORD CONFIRMATION
-    # -----------------------------------------------------
+
+    # --------------------------------------------------------
+    # EMAIL VALIDATION
+    # --------------------------------------------------------
+
+    if (
+        "@" not in email
+        or "." not in email.split("@")[-1]
+    ):
+
+        flash(
+            "Please enter a valid email address.",
+            "error"
+        )
+
+        create_captcha()
+
+        return redirect(
+            url_for("home")
+            + "#register"
+        )
+
+
+    # --------------------------------------------------------
+    # PASSWORD MATCH
+    # --------------------------------------------------------
 
     if password != confirm_password:
 
@@ -642,14 +456,15 @@ def register():
             + "#register"
         )
 
-    # -----------------------------------------------------
-    # PASSWORD LENGTH
-    # -----------------------------------------------------
 
-    if len(password) < 8:
+    # --------------------------------------------------------
+    # PASSWORD SECURITY
+    # --------------------------------------------------------
+
+    if len(password) < 6:
 
         flash(
-            "Password must contain at least 8 characters.",
+            "Password must contain at least 6 characters.",
             "error"
         )
 
@@ -660,24 +475,18 @@ def register():
             + "#register"
         )
 
-    # -----------------------------------------------------
-    # PASSWORD COMPLEXITY
-    # -----------------------------------------------------
 
-    has_letter = any(
-        char.isalpha()
-        for char in password
-    )
+    # --------------------------------------------------------
+    # CHECK PASSWORD COMPLEXITY
+    # --------------------------------------------------------
 
-    has_number = any(
-        char.isdigit()
-        for char in password
-    )
-
-    if not has_letter or not has_number:
+    if (
+        password.isalpha()
+        or password.isdigit()
+    ):
 
         flash(
-            "Password must contain both letters and numbers.",
+            "For stronger security, use a combination of letters and numbers.",
             "error"
         )
 
@@ -688,9 +497,10 @@ def register():
             + "#register"
         )
 
-    # -----------------------------------------------------
-    # CHECK EXISTING EMAIL
-    # -----------------------------------------------------
+
+    # --------------------------------------------------------
+    # CHECK EMAIL
+    # --------------------------------------------------------
 
     db = get_db()
 
@@ -705,7 +515,8 @@ def register():
 
     db.close()
 
-    if existing_user:
+
+    if existing_user is not None:
 
         flash(
             "This email is already registered.",
@@ -719,36 +530,32 @@ def register():
             + "#register"
         )
 
-    # -----------------------------------------------------
-    # HASH TEXT PASSWORD
-    # -----------------------------------------------------
 
-    password_hash = (
-        generate_password_hash(
-            password
-        )
-    )
-
-    # -----------------------------------------------------
-    # TEMPORARY REGISTRATION SESSION
-    # -----------------------------------------------------
+    # --------------------------------------------------------
+    # TEMPORARY REGISTRATION DATA
+    # --------------------------------------------------------
 
     session["registration_name"] = name
 
     session["registration_email"] = email
 
     session["registration_password_hash"] = (
-        password_hash
+        generate_password_hash(
+            password
+        )
     )
 
-    log_security_event(
-        "REGISTRATION_STARTED",
-        email=email
-    )
 
-    # -----------------------------------------------------
-    # GRAPHICAL PASSWORD SETUP
-    # -----------------------------------------------------
+    # --------------------------------------------------------
+    # CREATE GRAPHICAL AUTHENTICATION STATE
+    # --------------------------------------------------------
+
+    create_graphical_state()
+
+
+    # --------------------------------------------------------
+    # GO TO GRAPHICAL PASSWORD REGISTRATION
+    # --------------------------------------------------------
 
     return redirect(
         url_for(
@@ -757,9 +564,9 @@ def register():
     )
 
 
-# =========================================================
+# ============================================================
 # CREATE GRAPHICAL PASSWORD
-# =========================================================
+# ============================================================
 
 @app.route(
     "/create-graphical-password",
@@ -767,14 +574,25 @@ def register():
 )
 def create_graphical_password():
 
+    # User must complete normal registration first.
     if (
         "registration_email"
         not in session
     ):
 
+        flash(
+            "Please start registration first.",
+            "error"
+        )
+
         return redirect(
             url_for("home")
         )
+
+
+    # --------------------------------------------------------
+    # POST
+    # --------------------------------------------------------
 
     if request.method == "POST":
 
@@ -782,57 +600,38 @@ def create_graphical_password():
             "selected_images"
         )
 
-        # -------------------------------------------------
-        # ROTATION STATE
-        # -------------------------------------------------
 
-        rotation_raw = request.form.get(
-            "rotation_offset",
-            "0"
-        )
-
-        try:
-
-            rotation_offset = int(
-                rotation_raw
-            )
-
-        except ValueError:
-
-            rotation_offset = 0
-
-        # Keep rotation within 0-7 sectors.
-
-        rotation_offset %= 8
-
-        # -------------------------------------------------
+        # ----------------------------------------------------
         # VALIDATE SELECTION
-        # -------------------------------------------------
+        # ----------------------------------------------------
 
-        if not validate_graphical_sequence(
+        if not validate_graphical_selection(
             selected
         ):
 
             flash(
-                "Please select exactly 3 different valid characters.",
+                "Please select exactly 3 different characters.",
                 "error"
             )
+
+            create_graphical_state()
 
             return render_template(
                 "graphical_password.html",
                 mode="register"
             )
 
-        # -------------------------------------------------
+
+        # ----------------------------------------------------
         # HASH GRAPHICAL PASSWORD
-        # -------------------------------------------------
+        # ----------------------------------------------------
 
         graphical_hash = (
             hash_graphical_password(
-                selected,
-                rotation_offset
+                selected
             )
         )
+
 
         name = session[
             "registration_name"
@@ -846,7 +645,9 @@ def create_graphical_password():
             "registration_password_hash"
         ]
 
+
         db = get_db()
+
 
         try:
 
@@ -859,7 +660,6 @@ def create_graphical_password():
                     password_hash,
                     graphical_password_hash
                 )
-
                 VALUES (?, ?, ?, ?)
                 """,
                 (
@@ -871,6 +671,7 @@ def create_graphical_password():
             )
 
             db.commit()
+
 
         except sqlite3.IntegrityError:
 
@@ -890,30 +691,18 @@ def create_graphical_password():
                 + "#register"
             )
 
-        except Exception:
 
-            db.close()
+        finally:
 
-            flash(
-                "Registration could not be completed. Please try again.",
-                "error"
-            )
+            try:
+                db.close()
+            except Exception:
+                pass
 
-            return redirect(
-                url_for("home")
-                + "#register"
-            )
 
-        db.close()
-
-        log_security_event(
-            "REGISTRATION_COMPLETED",
-            email=email
-        )
-
-        # -------------------------------------------------
-        # CLEAR TEMPORARY DATA
-        # -------------------------------------------------
+        # ----------------------------------------------------
+        # CLEAR REGISTRATION DATA
+        # ----------------------------------------------------
 
         session.pop(
             "registration_name",
@@ -930,17 +719,48 @@ def create_graphical_password():
             None
         )
 
+        session.pop(
+            "graphical_characters",
+            None
+        )
+
+        session.pop(
+            "graphical_rotation",
+            None
+        )
+
+        session.pop(
+            "graphical_nonce",
+            None
+        )
+
+
         create_captcha()
+
 
         flash(
             "Registration successful! Please login.",
             "success"
         )
 
+
         return redirect(
             url_for("home")
             + "#login"
         )
+
+
+    # --------------------------------------------------------
+    # GET
+    # --------------------------------------------------------
+
+    if (
+        "graphical_characters"
+        not in session
+    ):
+
+        create_graphical_state()
+
 
     return render_template(
         "graphical_password.html",
@@ -948,15 +768,36 @@ def create_graphical_password():
     )
 
 
-# =========================================================
-# LOGIN
-# =========================================================
+# ============================================================
+# LOGIN - TEXT PASSWORD
+# ============================================================
 
 @app.route(
     "/login",
     methods=["POST"]
 )
 def login():
+
+    # --------------------------------------------------------
+    # CHECK LOGIN LOCK
+    # --------------------------------------------------------
+
+    if login_blocked():
+
+        flash(
+            "Too many unsuccessful login attempts. Please try again later.",
+            "error"
+        )
+
+        create_captcha()
+
+        reset_login_attempts()
+
+        return redirect(
+            url_for("home")
+            + "#login"
+        )
+
 
     email = request.form.get(
         "email",
@@ -973,21 +814,19 @@ def login():
         ""
     ).strip()
 
-    # -----------------------------------------------------
-    # CAPTCHA
-    # -----------------------------------------------------
 
-    if not captcha_is_valid(
+    # --------------------------------------------------------
+    # CAPTCHA
+    # --------------------------------------------------------
+
+    if not verify_captcha(
         captcha
     ):
 
-        log_security_event(
-            "LOGIN_FAILED_CAPTCHA",
-            email=email
-        )
+        increase_login_attempts()
 
         flash(
-            "Incorrect or expired security verification.",
+            "Incorrect security verification.",
             "error"
         )
 
@@ -998,11 +837,10 @@ def login():
             + "#login"
         )
 
-    consume_captcha()
 
-    # -----------------------------------------------------
+    # --------------------------------------------------------
     # FIND USER
-    # -----------------------------------------------------
+    # --------------------------------------------------------
 
     db = get_db()
 
@@ -1017,16 +855,14 @@ def login():
 
     db.close()
 
-    # -----------------------------------------------------
-    # USER NOT FOUND
-    # -----------------------------------------------------
+
+    # --------------------------------------------------------
+    # INVALID ACCOUNT
+    # --------------------------------------------------------
 
     if user is None:
 
-        log_security_event(
-            "LOGIN_FAILED_UNKNOWN_ACCOUNT",
-            email=email
-        )
+        increase_login_attempts()
 
         flash(
             "Invalid email or password.",
@@ -1040,48 +876,17 @@ def login():
             + "#login"
         )
 
-    # -----------------------------------------------------
-    # ACCOUNT LOCK CHECK
-    # -----------------------------------------------------
 
-    if is_account_locked(user):
-
-        log_security_event(
-            "LOGIN_BLOCKED_ACCOUNT_LOCKED",
-            user_id=user["id"],
-            email=email
-        )
-
-        flash(
-            "Too many failed attempts. Please try again later.",
-            "error"
-        )
-
-        create_captcha()
-
-        return redirect(
-            url_for("home")
-            + "#login"
-        )
-
-    # -----------------------------------------------------
-    # TEXT PASSWORD
-    # -----------------------------------------------------
+    # --------------------------------------------------------
+    # CHECK TEXT PASSWORD
+    # --------------------------------------------------------
 
     if not check_password_hash(
         user["password_hash"],
         password
     ):
 
-        register_failed_attempt(
-            user["id"]
-        )
-
-        log_security_event(
-            "LOGIN_FAILED_PASSWORD",
-            user_id=user["id"],
-            email=email
-        )
+        increase_login_attempts()
 
         flash(
             "Invalid email or password.",
@@ -1095,10 +900,16 @@ def login():
             + "#login"
         )
 
-    # -----------------------------------------------------
-    # TEXT PASSWORD SUCCESS
-    # -----------------------------------------------------
 
+    # --------------------------------------------------------
+    # TEXT PASSWORD SUCCESS
+    # --------------------------------------------------------
+
+    reset_login_attempts()
+
+
+    # Temporary session.
+    # User is NOT fully authenticated yet.
     session["login_user_id"] = (
         user["id"]
     )
@@ -1111,15 +922,17 @@ def login():
         user["email"]
     )
 
-    log_security_event(
-        "TEXT_PASSWORD_VERIFIED",
-        user_id=user["id"],
-        email=email
-    )
 
-    # -----------------------------------------------------
+    # --------------------------------------------------------
+    # CREATE NEW GRAPHICAL STATE
+    # --------------------------------------------------------
+
+    create_graphical_state()
+
+
+    # --------------------------------------------------------
     # GRAPHICAL PASSWORD
-    # -----------------------------------------------------
+    # --------------------------------------------------------
 
     return redirect(
         url_for(
@@ -1128,9 +941,9 @@ def login():
     )
 
 
-# =========================================================
+# ============================================================
 # VERIFY GRAPHICAL PASSWORD
-# =========================================================
+# ============================================================
 
 @app.route(
     "/verify-graphical-password",
@@ -1138,14 +951,28 @@ def login():
 )
 def verify_graphical_password():
 
+    # --------------------------------------------------------
+    # TEXT PASSWORD MUST BE COMPLETED FIRST
+    # --------------------------------------------------------
+
     if (
         "login_user_id"
         not in session
     ):
 
+        flash(
+            "Please complete the first authentication step.",
+            "error"
+        )
+
         return redirect(
             url_for("home")
         )
+
+
+    # --------------------------------------------------------
+    # POST
+    # --------------------------------------------------------
 
     if request.method == "POST":
 
@@ -1153,44 +980,42 @@ def verify_graphical_password():
             "selected_images"
         )
 
-        rotation_raw = request.form.get(
-            "rotation_offset",
-            "0"
-        )
 
-        try:
+        # ----------------------------------------------------
+        # VALIDATE SELECTION
+        # ----------------------------------------------------
 
-            rotation_offset = int(
-                rotation_raw
-            )
-
-        except ValueError:
-
-            rotation_offset = 0
-
-        rotation_offset %= 8
-
-        # -------------------------------------------------
-        # VALIDATE GRAPHICAL INPUT
-        # -------------------------------------------------
-
-        if not validate_graphical_sequence(
+        if not validate_graphical_selection(
             selected
         ):
 
             flash(
-                "Please select exactly 3 different valid characters.",
+                "Please select exactly 3 different characters.",
                 "error"
             )
+
+            create_graphical_state()
 
             return render_template(
                 "graphical_password.html",
                 mode="login"
             )
 
-        # -------------------------------------------------
-        # GET USER
-        # -------------------------------------------------
+
+        # ----------------------------------------------------
+        # CREATE SUBMITTED HASH
+        # ----------------------------------------------------
+
+        submitted_hash = (
+            hash_graphical_password(
+                selected
+            )
+        )
+
+
+        # ----------------------------------------------------
+        # FIND USER
+        # ----------------------------------------------------
 
         db = get_db()
 
@@ -1201,129 +1026,72 @@ def verify_graphical_password():
             WHERE id = ?
             """,
             (
-                session[
-                    "login_user_id"
-                ],
+                session["login_user_id"],
             )
         ).fetchone()
 
         db.close()
 
-        if user is None:
 
+        # ----------------------------------------------------
+        # VERIFY GRAPHICAL PASSWORD
+        # ----------------------------------------------------
+
+        graphical_valid = False
+
+
+        if user is not None:
+
+            graphical_valid = secrets.compare_digest(
+                submitted_hash,
+                user["graphical_password_hash"]
+            )
+
+
+        # ----------------------------------------------------
+        # SUCCESS
+        # ----------------------------------------------------
+
+        if graphical_valid:
+
+            user_id = user["id"]
+            user_name = user["name"]
+            user_email = user["email"]
+
+
+            # Completely clear temporary authentication data.
             session.clear()
 
+
+            # Create authenticated session.
+            session.permanent = True
+
+            session["user_id"] = user_id
+
+            session["user_name"] = user_name
+
+            session["user_email"] = user_email
+
+            session["authenticated"] = True
+
+
+            # Generate fresh CAPTCHA for future use.
             create_captcha()
 
-            flash(
-                "Authentication session expired.",
-                "error"
-            )
-
-            return redirect(
-                url_for("home")
-            )
-
-        # -------------------------------------------------
-        # CALCULATE SUBMITTED HASH
-        # -------------------------------------------------
-
-        submitted_hash = (
-            hash_graphical_password(
-                selected,
-                rotation_offset
-            )
-        )
-
-        # -------------------------------------------------
-        # CONSTANT-TIME COMPARISON
-        # -------------------------------------------------
-
-        authentication_success = hmac.compare_digest(
-            submitted_hash,
-            user[
-                "graphical_password_hash"
-            ]
-        )
-
-        if authentication_success:
-
-            # ---------------------------------------------
-            # SUCCESS
-            # ---------------------------------------------
-
-            reset_login_attempts(
-                user["id"]
-            )
-
-            db = get_db()
-
-            db.execute(
-                """
-                UPDATE users
-
-                SET last_login = ?
-
-                WHERE id = ?
-                """,
-                (
-                    datetime.utcnow().isoformat(),
-                    user["id"]
-                )
-            )
-
-            db.commit()
-
-            db.close()
-
-            log_security_event(
-                "GRAPHICAL_PASSWORD_VERIFIED",
-                user_id=user["id"],
-                email=user["email"]
-            )
-
-            # ---------------------------------------------
-            # CREATE FINAL AUTHENTICATED SESSION
-            # ---------------------------------------------
-
-            session.clear()
-
-            session["user_id"] = (
-                user["id"]
-            )
-
-            session["user_name"] = (
-                user["name"]
-            )
-
-            session["user_email"] = (
-                user["email"]
-            )
-
-            session["authenticated_at"] = (
-                datetime.utcnow().isoformat()
-            )
 
             return redirect(
                 url_for("dashboard")
             )
 
-        # -------------------------------------------------
-        # GRAPHICAL PASSWORD FAILURE
-        # -------------------------------------------------
 
-        register_failed_attempt(
-            user["id"]
-        )
+        # ----------------------------------------------------
+        # GRAPHICAL PASSWORD FAILED
+        # ----------------------------------------------------
 
-        log_security_event(
-            "LOGIN_FAILED_GRAPHICAL_PASSWORD",
-            user_id=user["id"],
-            email=user["email"]
-        )
+        increase_login_attempts()
 
-        # Clear temporary authentication state.
 
+        # Remove temporary login information.
         session.pop(
             "login_user_id",
             None
@@ -1339,17 +1107,49 @@ def verify_graphical_password():
             None
         )
 
+
+        session.pop(
+            "graphical_characters",
+            None
+        )
+
+        session.pop(
+            "graphical_rotation",
+            None
+        )
+
+        session.pop(
+            "graphical_nonce",
+            None
+        )
+
+
         create_captcha()
 
+
         flash(
-            "Incorrect graphical password.",
+            "Incorrect graphical password. Authentication was cancelled.",
             "error"
         )
+
 
         return redirect(
             url_for("home")
             + "#login"
         )
+
+
+    # --------------------------------------------------------
+    # GET
+    # --------------------------------------------------------
+
+    if (
+        "graphical_characters"
+        not in session
+    ):
+
+        create_graphical_state()
+
 
     return render_template(
         "graphical_password.html",
@@ -1357,11 +1157,13 @@ def verify_graphical_password():
     )
 
 
-# =========================================================
+# ============================================================
 # DASHBOARD
-# =========================================================
+# ============================================================
 
-@app.route("/dashboard")
+@app.route(
+    "/dashboard"
+)
 @login_required
 def dashboard():
 
@@ -1372,28 +1174,14 @@ def dashboard():
     )
 
 
-# =========================================================
+# ============================================================
 # LOGOUT
-# =========================================================
+# ============================================================
 
-@app.route("/logout")
+@app.route(
+    "/logout"
+)
 def logout():
-
-    user_id = session.get(
-        "user_id"
-    )
-
-    email = session.get(
-        "user_email"
-    )
-
-    if user_id:
-
-        log_security_event(
-            "LOGOUT",
-            user_id=user_id,
-            email=email
-        )
 
     session.clear()
 
@@ -1409,85 +1197,48 @@ def logout():
     )
 
 
-# =========================================================
+# ============================================================
 # SECURITY HEADERS
-# =========================================================
+# ============================================================
 
 @app.after_request
 def add_security_headers(response):
 
-    response.headers["X-Content-Type-Options"] = (
-        "nosniff"
-    )
+    response.headers[
+        "X-Content-Type-Options"
+    ] = "nosniff"
 
-    response.headers["X-Frame-Options"] = (
-        "SAMEORIGIN"
-    )
+    response.headers[
+        "X-Frame-Options"
+    ] = "SAMEORIGIN"
 
-    response.headers["Referrer-Policy"] = (
-        "strict-origin-when-cross-origin"
-    )
+    response.headers[
+        "Referrer-Policy"
+    ] = "strict-origin-when-cross-origin"
 
-    response.headers["Permissions-Policy"] = (
-        "camera=(), microphone=(), geolocation=()"
-    )
-
-    response.headers["Cache-Control"] = (
-        "no-store"
+    response.headers[
+        "Permissions-Policy"
+    ] = (
+        "camera=(), "
+        "microphone=(), "
+        "geolocation=()"
     )
 
     return response
 
 
-# =========================================================
-# ERROR HANDLERS
-# =========================================================
-
-@app.errorhandler(404)
-def page_not_found(error):
-
-    return render_template(
-        "index.html"
-    ), 404
-
-
-@app.errorhandler(500)
-def internal_server_error(error):
-
-    return render_template(
-        "index.html"
-    ), 500
-
-
-# =========================================================
+# ============================================================
 # APPLICATION START
-# =========================================================
+# ============================================================
 
 if __name__ == "__main__":
 
     init_database()
 
-    print("=" * 60)
-
-    print(
-        "SecureGraphical Authentication System"
-    )
-
-    print(
-        "Multi-Layer Graphical Password Security"
-    )
-
-    print("=" * 60)
-
-    print(
-        "Server running on:"
-    )
-
-    print(
-        "http://127.0.0.1:5000"
-    )
-
-    print("=" * 60)
+    # Create first CAPTCHA for the initial session.
+    # If the user already has a session, Flask will retain it.
+    if "captcha_question" not in session:
+        create_captcha()
 
     app.run(
         host="0.0.0.0",

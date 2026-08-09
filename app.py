@@ -661,6 +661,9 @@ if __name__ == "__main__":
 
     init_database()
 
+  init_database()
+
+if __name__ == "__main__":
     app.run(
         debug=False,
         use_reloader=False

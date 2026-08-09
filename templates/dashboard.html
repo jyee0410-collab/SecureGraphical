@@ -1,1707 +1,411 @@
 <!DOCTYPE html>
-
 <html lang="en">
-
 <head>
+    <meta charset="UTF-8">
 
-```
-<meta charset="UTF-8">
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
 
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
+    <title>SecureGraphical | Security Console</title>
 
-<meta name="description"
-      content="SecureGraphical secure authentication dashboard.">
-
-<title>SecureGraphical | Security Dashboard</title>
-
-
-<style>
-
-    * {
-        box-sizing: border-box;
-        margin: 0;
-        padding: 0;
-    }
-
-    :root {
-
-        --bg: #050a13;
-        --bg2: #091423;
-
-        --card: rgba(14, 28, 47, 0.82);
-
-        --border: rgba(255,255,255,0.09);
-
-        --text: #f5f8ff;
-        --muted: #8da0b8;
-
-        --blue: #5b8cff;
-        --purple: #7c5cff;
-
-        --green: #35d49a;
-        --green-light: #8ce5c6;
-
-        --red: #ff647c;
-
-    }
-
-
-    /* =========================================
-       BODY
-    ========================================= */
-
-    body {
-
-        min-height: 100vh;
-
-        font-family:
-            Inter,
-            ui-sans-serif,
-            system-ui,
-            -apple-system,
-            BlinkMacSystemFont,
-            "Segoe UI",
-            sans-serif;
-
-        color: var(--text);
-
-        background:
-
-            radial-gradient(
-                circle at 10% 10%,
-                rgba(91,140,255,0.18),
-                transparent 30%
-            ),
-
-            radial-gradient(
-                circle at 90% 15%,
-                rgba(124,92,255,0.15),
-                transparent 28%
-            ),
-
-            linear-gradient(
-                135deg,
-                #040811,
-                #07111f 50%,
-                #0a1729
-            );
-
-        overflow-x: hidden;
-    }
-
-
-    body::before {
-
-        content: "";
-
-        position: fixed;
-
-        inset: 0;
-
-        pointer-events: none;
-
-        background-image:
-
-            linear-gradient(
-                rgba(255,255,255,0.015) 1px,
-                transparent 1px
-            ),
-
-            linear-gradient(
-                90deg,
-                rgba(255,255,255,0.015) 1px,
-                transparent 1px
-            );
-
-        background-size: 42px 42px;
-
-    }
-
-
-    /* =========================================
-       NAVBAR
-    ========================================= */
-
-    .navbar {
-
-        height: 76px;
-
-        padding: 0 6%;
-
-        display: flex;
-
-        align-items: center;
-
-        justify-content: space-between;
-
-        position: relative;
-
-        z-index: 5;
-
-        border-bottom:
-            1px solid
-            rgba(255,255,255,0.06);
-
-        background:
-            rgba(5,10,19,0.45);
-
-        backdrop-filter: blur(18px);
-
-    }
-
-
-    .brand {
-
-        display: flex;
-
-        align-items: center;
-
-        gap: 11px;
-
-        font-weight: 800;
-
-        letter-spacing: -0.3px;
-
-    }
-
-
-    .brand-icon {
-
-        width: 40px;
-        height: 40px;
-
-        border-radius: 12px;
-
-        display: flex;
-
-        align-items: center;
-
-        justify-content: center;
-
-        background:
-
-            linear-gradient(
-                135deg,
-                var(--blue),
-                var(--purple)
-            );
-
-        box-shadow:
-
-            0 8px 30px
-            rgba(91,140,255,0.30);
-
-        font-size: 13px;
-
-    }
-
-
-    .brand-name {
-
-        font-size: 17px;
-
-    }
-
-
-    .brand-name span {
-
-        color: #7ea4ff;
-
-    }
-
-
-    .nav-right {
-
-        display: flex;
-
-        align-items: center;
-
-        gap: 20px;
-
-    }
-
-
-    .online-status {
-
-        display: flex;
-
-        align-items: center;
-
-        gap: 8px;
-
-        color: var(--muted);
-
-        font-size: 12px;
-
-    }
-
-
-    .online-dot {
-
-        width: 8px;
-        height: 8px;
-
-        border-radius: 50%;
-
-        background: var(--green);
-
-        box-shadow:
-            0 0 14px
-            rgba(53,212,154,0.85);
-
-    }
-
-
-    /* =========================================
-       MAIN
-    ========================================= */
-
-    .container {
-
-        width: min(1180px, 90%);
-
-        margin: auto;
-
-        padding: 48px 0 60px;
-
-        position: relative;
-
-        z-index: 2;
-
-    }
-
-
-    /* =========================================
-       WELCOME
-    ========================================= */
-
-    .welcome {
-
-        display: flex;
-
-        justify-content: space-between;
-
-        align-items: flex-end;
-
-        gap: 30px;
-
-        margin-bottom: 30px;
-
-    }
-
-
-    .welcome-left {
-
-        animation:
-            fadeUp .6s ease;
-
-    }
-
-
-    .eyebrow {
-
-        display: inline-flex;
-
-        align-items: center;
-
-        gap: 7px;
-
-        padding: 7px 12px;
-
-        margin-bottom: 15px;
-
-        border-radius: 999px;
-
-        background:
-            rgba(53,212,154,0.07);
-
-        border:
-            1px solid
-            rgba(53,212,154,0.15);
-
-        color: #8ce5c6;
-
-        font-size: 10px;
-
-        font-weight: 800;
-
-        letter-spacing: .6px;
-
-        text-transform: uppercase;
-
-    }
-
-
-    .welcome h1 {
-
-        font-size:
-            clamp(34px, 5vw, 52px);
-
-        letter-spacing: -2.5px;
-
-        line-height: 1;
-
-        margin-bottom: 12px;
-
-    }
-
-
-    .welcome h1 span {
-
-        background:
-
-            linear-gradient(
-                90deg,
-                #ffffff,
-                #82a5ff,
-                #a58bff
-            );
-
-        -webkit-background-clip: text;
-
-        background-clip: text;
-
-        color: transparent;
-
-    }
-
-
-    .welcome p {
-
-        color: var(--muted);
-
-        font-size: 14px;
-
-        line-height: 1.7;
-
-        max-width: 620px;
-
-    }
-
-
-    .session-badge {
-
-        padding: 12px 16px;
-
-        border-radius: 14px;
-
-        border:
-            1px solid
-            rgba(53,212,154,0.16);
-
-        background:
-            rgba(53,212,154,0.045);
-
-        color: var(--green-light);
-
-        font-size: 11px;
-
-        font-weight: 800;
-
-        white-space: nowrap;
-
-    }
-
-
-    /* =========================================
-       TOP CARDS
-    ========================================= */
-
-    .top-grid {
-
-        display: grid;
-
-        grid-template-columns:
-            1.25fr
-            .75fr;
-
-        gap: 20px;
-
-        margin-bottom: 20px;
-
-    }
-
-
-    .card {
-
-        border:
-            1px solid
-            var(--border);
-
-        border-radius: 23px;
-
-        background:
-
-            linear-gradient(
-                145deg,
-                rgba(18,35,58,.88),
-                rgba(7,17,30,.90)
-            );
-
-        box-shadow:
-            0 25px 70px
-            rgba(0,0,0,.30);
-
-        backdrop-filter: blur(20px);
-
-    }
-
-
-    /* =========================================
-       AUTH SUCCESS CARD
-    ========================================= */
-
-    .success-card {
-
-        padding: 26px;
-
-        display: flex;
-
-        align-items: center;
-
-        gap: 20px;
-
-        animation:
-            fadeUp .7s ease;
-
-    }
-
-
-    .success-icon {
-
-        width: 64px;
-        height: 64px;
-
-        flex-shrink: 0;
-
-        border-radius: 19px;
-
-        display: flex;
-
-        align-items: center;
-
-        justify-content: center;
-
-        background:
-            rgba(53,212,154,0.10);
-
-        border:
-            1px solid
-            rgba(53,212,154,0.20);
-
-        color: var(--green);
-
-        font-size: 27px;
-
-        box-shadow:
-            0 0 30px
-            rgba(53,212,154,.08);
-
-    }
-
-
-    .success-content h2 {
-
-        font-size: 18px;
-
-        margin-bottom: 6px;
-
-    }
-
-
-    .success-content p {
-
-        color: var(--muted);
-
-        font-size: 12px;
-
-        line-height: 1.6;
-
-    }
-
-
-    .verified {
-
-        display: inline-flex;
-
-        margin-top: 10px;
-
-        padding: 5px 9px;
-
-        border-radius: 7px;
-
-        background:
-            rgba(53,212,154,.08);
-
-        color: #82dfbc;
-
-        font-size: 9px;
-
-        font-weight: 900;
-
-        letter-spacing: .5px;
-
-    }
-
-
-    /* =========================================
-       SECURITY SCORE
-    ========================================= */
-
-    .score-card {
-
-        padding: 25px;
-
-        animation:
-            fadeUp .8s ease;
-
-    }
-
-
-    .score-header {
-
-        display: flex;
-
-        justify-content: space-between;
-
-        align-items: center;
-
-        margin-bottom: 18px;
-
-    }
-
-
-    .score-header span:first-child {
-
-        color: var(--muted);
-
-        font-size: 11px;
-
-    }
-
-
-    .score-value {
-
-        color: #82e2be;
-
-        font-size: 16px;
-
-        font-weight: 900;
-
-    }
-
-
-    .score-circle {
-
-        width: 105px;
-        height: 105px;
-
-        margin: auto;
-
-        border-radius: 50%;
-
-        display: flex;
-
-        align-items: center;
-
-        justify-content: center;
-
-        background:
-
-            conic-gradient(
-                var(--green) 0deg 320deg,
-                rgba(255,255,255,.07) 320deg 360deg
-            );
-
-        position: relative;
-
-    }
-
-
-    .score-circle::after {
-
-        content: "";
-
-        position: absolute;
-
-        width: 78px;
-        height: 78px;
-
-        border-radius: 50%;
-
-        background: #0b1829;
-
-    }
-
-
-    .score-number {
-
-        position: relative;
-
-        z-index: 2;
-
-        font-size: 24px;
-
-        font-weight: 900;
-
-    }
-
-
-    .score-label {
-
-        text-align: center;
-
-        margin-top: 10px;
-
-        color: var(--muted);
-
-        font-size: 10px;
-
-    }
-
-
-    /* =========================================
-       LOWER GRID
-    ========================================= */
-
-    .lower-grid {
-
-        display: grid;
-
-        grid-template-columns:
-            .95fr
-            1.05fr;
-
-        gap: 20px;
-
-    }
-
-
-    /* =========================================
-       ACCOUNT
-    ========================================= */
-
-    .section-card {
-
-        padding: 26px;
-
-        animation:
-            fadeUp .9s ease;
-
-    }
-
-
-    .section-heading {
-
-        display: flex;
-
-        align-items: center;
-
-        gap: 11px;
-
-        margin-bottom: 21px;
-
-    }
-
-
-    .heading-icon {
-
-        width: 36px;
-        height: 36px;
-
-        display: flex;
-
-        align-items: center;
-
-        justify-content: center;
-
-        border-radius: 10px;
-
-        background:
-            rgba(91,140,255,.10);
-
-        border:
-            1px solid
-            rgba(91,140,255,.12);
-
-    }
-
-
-    .section-heading h2 {
-
-        font-size: 16px;
-
-    }
-
-
-    .section-heading p {
-
-        color: var(--muted);
-
-        font-size: 10px;
-
-        margin-top: 3px;
-
-    }
-
-
-    /* =========================================
-       USER INFORMATION
-    ========================================= */
-
-    .info-list {
-
-        display: flex;
-
-        flex-direction: column;
-
-    }
-
-
-    .info-row {
-
-        display: flex;
-
-        justify-content: space-between;
-
-        align-items: center;
-
-        padding: 15px 0;
-
-        border-bottom:
-            1px solid
-            rgba(255,255,255,.055);
-
-        gap: 15px;
-
-    }
-
-
-    .info-row:last-child {
-
-        border-bottom: none;
-
-    }
-
-
-    .info-label {
-
-        color: var(--muted);
-
-        font-size: 11px;
-
-    }
-
-
-    .info-value {
-
-        color: #e9eff9;
-
-        font-size: 12px;
-
-        font-weight: 700;
-
-        text-align: right;
-
-        word-break: break-word;
-
-    }
-
-
-    .auth-badge {
-
-        color: #82dfbc;
-
-        padding: 5px 8px;
-
-        border-radius: 7px;
-
-        background:
-            rgba(53,212,154,.08);
-
-        font-size: 9px;
-
-        font-weight: 900;
-
-    }
-
-
-    /* =========================================
-       SECURITY FEATURES
-    ========================================= */
-
-    .security-grid {
-
-        display: grid;
-
-        grid-template-columns:
-            repeat(2, 1fr);
-
-        gap: 10px;
-
-    }
-
-
-    .security-feature {
-
-        padding: 15px;
-
-        border-radius: 14px;
-
-        border:
-            1px solid
-            rgba(255,255,255,.07);
-
-        background:
-            rgba(255,255,255,.025);
-
-        transition:
-            transform .2s ease,
-            border-color .2s ease,
-            background .2s ease;
-
-    }
-
-
-    .security-feature:hover {
-
-        transform:
-            translateY(-3px);
-
-        border-color:
-            rgba(91,140,255,.25);
-
-        background:
-            rgba(91,140,255,.05);
-
-    }
-
-
-    .security-feature-icon {
-
-        font-size: 18px;
-
-        margin-bottom: 9px;
-
-    }
-
-
-    .security-feature strong {
-
-        display: block;
-
-        font-size: 11px;
-
-        margin-bottom: 4px;
-
-    }
-
-
-    .security-feature span {
-
-        color: var(--muted);
-
-        font-size: 9px;
-
-        line-height: 1.5;
-
-    }
-
-
-    /* =========================================
-       SECURITY LAYERS
-    ========================================= */
-
-    .layers {
-
-        margin-top: 20px;
-
-    }
-
-
-    .layer {
-
-        display: flex;
-
-        align-items: center;
-
-        gap: 11px;
-
-        padding: 10px 0;
-
-    }
-
-
-    .layer-number {
-
-        width: 25px;
-        height: 25px;
-
-        border-radius: 8px;
-
-        display: flex;
-
-        align-items: center;
-
-        justify-content: center;
-
-        background:
-            rgba(91,140,255,.10);
-
-        color: #91adff;
-
-        font-size: 9px;
-
-        font-weight: 900;
-
-    }
-
-
-    .layer-text {
-
-        flex: 1;
-
-    }
-
-
-    .layer-text strong {
-
-        display: block;
-
-        font-size: 10px;
-
-    }
-
-
-    .layer-text span {
-
-        color: var(--muted);
-
-        font-size: 9px;
-
-    }
-
-
-    .layer-status {
-
-        color: var(--green);
-
-        font-size: 9px;
-
-        font-weight: 900;
-
-    }
-
-
-    /* =========================================
-       LOGOUT
-    ========================================= */
-
-    .actions {
-
-        margin-top: 20px;
-
-        display: flex;
-
-        justify-content: flex-end;
-
-    }
-
-
-    .logout-button {
-
-        display: inline-flex;
-
-        align-items: center;
-
-        justify-content: center;
-
-        gap: 8px;
-
-        padding: 12px 18px;
-
-        border-radius: 11px;
-
-        border:
-            1px solid
-            rgba(255,100,124,.18);
-
-        background:
-            rgba(255,100,124,.055);
-
-        color: #ff9aaa;
-
-        text-decoration: none;
-
-        font-size: 11px;
-
-        font-weight: 800;
-
-        transition: .2s ease;
-
-    }
-
-
-    .logout-button:hover {
-
-        background:
-            rgba(255,100,124,.11);
-
-        border-color:
-            rgba(255,100,124,.32);
-
-        transform:
-            translateY(-2px);
-
-    }
-
-
-    /* =========================================
-       FOOTER
-    ========================================= */
-
-    .footer {
-
-        margin-top: 35px;
-
-        padding-top: 22px;
-
-        border-top:
-            1px solid
-            rgba(255,255,255,.05);
-
-        display: flex;
-
-        justify-content: space-between;
-
-        color: #536984;
-
-        font-size: 10px;
-
-    }
-
-
-    .footer strong {
-
-        color: #7387a2;
-
-    }
-
-
-    /* =========================================
-       ANIMATION
-    ========================================= */
-
-    @keyframes fadeUp {
-
-        from {
-
-            opacity: 0;
-
-            transform:
-                translateY(15px);
-
-        }
-
-        to {
-
-            opacity: 1;
-
-            transform:
-                translateY(0);
-
-        }
-
-    }
-
-
-    /* =========================================
-       RESPONSIVE
-    ========================================= */
-
-    @media(max-width: 900px) {
-
-        .top-grid,
-        .lower-grid {
-
-            grid-template-columns: 1fr;
-
-        }
-
-        .welcome {
-
-            align-items: flex-start;
-
-            flex-direction: column;
-
-        }
-
-    }
-
-
-    @media(max-width: 600px) {
-
-        .navbar {
-
-            padding: 0 5%;
-
-        }
-
-        .online-status {
-
-            display: none;
-
-        }
-
-        .container {
-
-            width: 92%;
-
-            padding-top: 30px;
-
-        }
-
-        .welcome h1 {
-
-            font-size: 38px;
-
-        }
-
-        .success-card {
-
-            align-items: flex-start;
-
-            flex-direction: column;
-
-        }
-
-        .security-grid {
-
-            grid-template-columns: 1fr;
-
-        }
-
-        .footer {
-
-            flex-direction: column;
-
-            gap: 8px;
-
-            text-align: center;
-
-        }
-
-    }
-
-</style>
-```
-
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='dashboard.css') }}">
 </head>
 
 <body>
 
-<!-- =========================================
-     NAVIGATION
-========================================= -->
+    <!-- TOP NAVIGATION -->
 
-<nav class="navbar">
+    <nav class="navbar">
 
-```
-<div class="brand">
+        <div class="brand">
 
-    <div class="brand-icon">
-        SG
-    </div>
+            <div class="brand-mark">
+                SG
+            </div>
 
-    <div class="brand-name">
-        Secure<span>Graphical</span>
-    </div>
-
-</div>
-
-
-<div class="nav-right">
-
-    <div class="online-status">
-
-        <div class="online-dot"></div>
-
-        Secure authentication channel active
-
-    </div>
-
-</div>
-```
-
-</nav>
-
-<!-- =========================================
-     MAIN CONTAINER
-========================================= -->
-
-<main class="container">
-
-```
-<!-- WELCOME -->
-
-<section class="welcome">
-
-    <div class="welcome-left">
-
-        <div class="eyebrow">
-            ✓ Authentication completed
-        </div>
-
-        <h1>
-            Welcome,
-            <span>{{ name }}</span>
-        </h1>
-
-        <p>
-            Your identity has been successfully verified
-            through the SecureGraphical multi-layer
-            authentication process.
-        </p>
-
-    </div>
-
-
-    <div class="session-badge">
-        🔒 SECURE SESSION ACTIVE
-    </div>
-
-</section>
-
-
-
-<!-- =========================================
-     TOP CARDS
-========================================== -->
-
-<div class="top-grid">
-
-
-    <!-- SUCCESS -->
-
-    <section class="card success-card">
-
-        <div class="success-icon">
-            ✓
-        </div>
-
-
-        <div class="success-content">
-
-            <h2>
-                Authentication Successful
-            </h2>
-
-            <p>
-                Your conventional password, CAPTCHA
-                verification and graphical password
-                have been successfully validated.
-            </p>
-
-            <div class="verified">
-                IDENTITY VERIFIED
+            <div class="brand-name">
+                Secure<span>Graphical</span>
             </div>
 
         </div>
 
-    </section>
+        <div class="nav-right">
 
+            <div class="system-status">
 
+                <span class="status-dot"></span>
 
-    <!-- SECURITY SCORE -->
-
-    <section class="card score-card">
-
-        <div class="score-header">
-
-            <span>
-                Authentication Protection
-            </span>
-
-            <span class="score-value">
-                HIGH
-            </span>
-
-        </div>
-
-
-        <div class="score-circle">
-
-            <div class="score-number">
-                89
-            </div>
-
-        </div>
-
-
-        <div class="score-label">
-            Multi-layer protection enabled
-        </div>
-
-    </section>
-
-</div>
-
-
-
-<!-- =========================================
-     LOWER CONTENT
-========================================== -->
-
-<div class="lower-grid">
-
-
-    <!-- ACCOUNT INFORMATION -->
-
-    <section class="card section-card">
-
-        <div class="section-heading">
-
-            <div class="heading-icon">
-                👤
-            </div>
-
-            <div>
-
-                <h2>
-                    Account Information
-                </h2>
-
-                <p>
-                    Registered account details
-                </p>
+                SYSTEM SECURE
 
             </div>
 
-        </div>
+            <a href="{{ url_for('logout') }}"
+               class="logout-top">
 
-
-        <div class="info-list">
-
-
-            <div class="info-row">
-
-                <span class="info-label">
-                    Full Name
-                </span>
-
-                <span class="info-value">
-                    {{ name }}
-                </span>
-
-            </div>
-
-
-            <div class="info-row">
-
-                <span class="info-label">
-                    Email Address
-                </span>
-
-                <span class="info-value">
-                    {{ email }}
-                </span>
-
-            </div>
-
-
-            <div class="info-row">
-
-                <span class="info-label">
-                    Authentication
-                </span>
-
-                <span class="auth-badge">
-                    MULTI-LAYER
-                </span>
-
-            </div>
-
-
-            <div class="info-row">
-
-                <span class="info-label">
-                    Graphical Password
-                </span>
-
-                <span class="auth-badge">
-                    VERIFIED
-                </span>
-
-            </div>
-
-
-            <div class="info-row">
-
-                <span class="info-label">
-                    Session Status
-                </span>
-
-                <span class="auth-badge">
-                    ACTIVE
-                </span>
-
-            </div>
-
-        </div>
-
-
-        <div class="actions">
-
-            <a
-                href="{{ url_for('logout') }}"
-                class="logout-button">
-
-                ⇥ Logout Securely
+                Log out
 
             </a>
 
         </div>
 
-    </section>
+    </nav>
 
 
+    <!-- MAIN -->
 
-    <!-- SECURITY -->
+    <main class="container">
 
-    <section class="card section-card">
 
-        <div class="section-heading">
+        <!-- HEADER -->
 
-            <div class="heading-icon">
-                🛡️
-            </div>
+        <section class="page-header">
 
             <div>
 
-                <h2>
-                    Security Architecture
-                </h2>
+                <div class="section-label">
+                    SECURITY CONSOLE
+                </div>
+
+                <h1>
+                    Welcome back, {{ name }}
+                </h1>
 
                 <p>
-                    Protection mechanisms currently active
+                    Your identity has been successfully
+                    verified through multi-layer authentication.
                 </p>
 
             </div>
 
-        </div>
+            <div class="verified-badge">
 
+                <span>✓</span>
 
-        <div class="security-grid">
-
-
-            <div class="security-feature">
-
-                <div class="security-feature-icon">
-                    🔐
-                </div>
-
-                <strong>
-                    Password Hashing
-                </strong>
-
-                <span>
-                    Password credentials are protected
-                    using secure password hashing.
-                </span>
+                VERIFIED
 
             </div>
 
+        </section>
 
-            <div class="security-feature">
 
-                <div class="security-feature-icon">
-                    🎨
+
+        <!-- OVERVIEW -->
+
+        <section class="overview-grid">
+
+
+            <!-- AUTHENTICATION CARD -->
+
+            <div class="card authentication-card">
+
+                <div class="card-label">
+                    AUTHENTICATION STATUS
                 </div>
 
-                <strong>
-                    Graphical Password
-                </strong>
+                <div class="auth-content">
 
-                <span>
-                    A personalised graphical sequence
-                    provides an additional credential.
-                </span>
+                    <div class="auth-icon">
+                        ✓
+                    </div>
 
-            </div>
+                    <div>
 
+                        <h2>
+                            Authenticated
+                        </h2>
 
-            <div class="security-feature">
+                        <p>
+                            All required authentication
+                            layers have been successfully verified.
+                        </p>
 
-                <div class="security-feature-icon">
-                    🧮
+                    </div>
+
                 </div>
 
-                <strong>
-                    CAPTCHA
-                </strong>
+                <div class="auth-line"></div>
 
-                <span>
-                    Security verification helps reduce
-                    automated authentication attempts.
-                </span>
-
-            </div>
-
-
-            <div class="security-feature">
-
-                <div class="security-feature-icon">
-                    👁️
-                </div>
-
-                <strong>
-                    Shoulder-Surfing Resistance
-                </strong>
-
-                <span>
-                    Dynamic graphical interaction is
-                    designed to reduce visual observation risk.
-                </span>
-
-            </div>
-
-        </div>
-
-
-
-        <!-- AUTHENTICATION LAYERS -->
-
-        <div class="layers">
-
-
-            <div class="layer">
-
-                <div class="layer-number">
-                    01
-                </div>
-
-                <div class="layer-text">
-
-                    <strong>
-                        CAPTCHA Verification
-                    </strong>
+                <div class="auth-meta">
 
                     <span>
-                        Human verification
+                        Authentication level
                     </span>
 
-                </div>
-
-                <div class="layer-status">
-                    ACTIVE
-                </div>
-
-            </div>
-
-
-            <div class="layer">
-
-                <div class="layer-number">
-                    02
-                </div>
-
-                <div class="layer-text">
-
                     <strong>
-                        Text Password
+                        MULTI-LAYER
                     </strong>
 
-                    <span>
-                        Credential verification
-                    </span>
-
-                </div>
-
-                <div class="layer-status">
-                    ACTIVE
                 </div>
 
             </div>
 
 
-            <div class="layer">
 
-                <div class="layer-number">
-                    03
+            <!-- ACCOUNT CARD -->
+
+            <div class="card account-card">
+
+                <div class="card-label">
+                    ACCOUNT
                 </div>
 
-                <div class="layer-text">
+                <div class="account-row">
+
+                    <span>
+                        Name
+                    </span>
 
                     <strong>
+                        {{ name }}
+                    </strong>
+
+                </div>
+
+                <div class="account-row">
+
+                    <span>
+                        Email
+                    </span>
+
+                    <strong class="email">
+                        {{ email }}
+                    </strong>
+
+                </div>
+
+                <div class="account-row">
+
+                    <span>
+                        Status
+                    </span>
+
+                    <strong class="protected">
+                        Protected
+                    </strong>
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- SECURITY LAYERS -->
+
+        <section class="security-section">
+
+            <div class="section-heading">
+
+                <div>
+
+                    <div class="section-label">
+                        SECURITY ARCHITECTURE
+                    </div>
+
+                    <h2>
+                        Active protection layers
+                    </h2>
+
+                </div>
+
+                <span class="layer-count">
+                    05 ACTIVE
+                </span>
+
+            </div>
+
+
+            <div class="security-grid">
+
+
+                <div class="security-card">
+
+                    <div class="security-number">
+                        01
+                    </div>
+
+                    <div class="security-card-icon">
+                        #
+                    </div>
+
+                    <h3>
+                        Password Hashing
+                    </h3>
+
+                    <p>
+                        User passwords are securely stored
+                        using password hashing.
+                    </p>
+
+                    <div class="active">
+                        <span></span>
+                        ACTIVE
+                    </div>
+
+                </div>
+
+
+
+                <div class="security-card">
+
+                    <div class="security-number">
+                        02
+                    </div>
+
+                    <div class="security-card-icon">
+                        ◈
+                    </div>
+
+                    <h3>
                         Graphical Password
-                    </strong>
+                    </h3>
 
-                    <span>
-                        Character sequence verification
-                    </span>
+                    <p>
+                        A graphical authentication sequence
+                        provides an additional security layer.
+                    </p>
+
+                    <div class="active">
+                        <span></span>
+                        ACTIVE
+                    </div>
 
                 </div>
 
-                <div class="layer-status">
-                    ACTIVE
+
+
+                <div class="security-card">
+
+                    <div class="security-number">
+                        03
+                    </div>
+
+                    <div class="security-card-icon">
+                        ⊙
+                    </div>
+
+                    <h3>
+                        CAPTCHA
+                    </h3>
+
+                    <p>
+                        Human verification helps reduce
+                        automated authentication attempts.
+                    </p>
+
+                    <div class="active">
+                        <span></span>
+                        ACTIVE
+                    </div>
+
+                </div>
+
+
+
+                <div class="security-card">
+
+                    <div class="security-number">
+                        04
+                    </div>
+
+                    <div class="security-card-icon">
+                        ◉
+                    </div>
+
+                    <h3>
+                        Session Authentication
+                    </h3>
+
+                    <p>
+                        Protected sessions ensure that
+                        authenticated users remain verified.
+                    </p>
+
+                    <div class="active">
+                        <span></span>
+                        ACTIVE
+                    </div>
+
+                </div>
+
+
+
+                <div class="security-card">
+
+                    <div class="security-number">
+                        05
+                    </div>
+
+                    <div class="security-card-icon">
+                        ✓
+                    </div>
+
+                    <h3>
+                        Protected Dashboard
+                    </h3>
+
+                    <p>
+                        Dashboard access is restricted to
+                        successfully authenticated users.
+                    </p>
+
+                    <div class="active">
+                        <span></span>
+                        ACTIVE
+                    </div>
+
                 </div>
 
             </div>
 
+        </section>
 
-            <div class="layer">
 
-                <div class="layer-number">
-                    04
-                </div>
 
-                <div class="layer-text">
+        <!-- SECURITY NOTICE -->
 
-                    <strong>
-                        Protected Session
-                    </strong>
+        <section class="notice">
 
-                    <span>
-                        Dashboard access control
-                    </span>
+            <div class="notice-icon">
+                !
+            </div>
 
-                </div>
+            <div>
 
-                <div class="layer-status">
-                    ACTIVE
-                </div>
+                <strong>
+                    Security notice
+                </strong>
+
+                <p>
+                    Your account is protected by multiple
+                    authentication mechanisms. Do not share
+                    your password or graphical authentication
+                    sequence with anyone.
+                </p>
 
             </div>
 
-        </div>
-
-    </section>
-
-</div>
+        </section>
 
 
 
-<!-- =========================================
-     FOOTER
-========================================== -->
+        <!-- FOOTER -->
 
-<footer class="footer">
+        <footer>
 
-    <div>
-        <strong>SecureGraphical</strong>
-        • Graphical Password Authentication System
-    </div>
+            <span>
+                SecureGraphical
+            </span>
 
-    <div>
-        Multi-Layer Security Architecture
-    </div>
+            <span>
+                Graphical Password Authentication System
+            </span>
 
-</footer>
-```
+        </footer>
 
-</main>
+    </main>
 
 </body>
-
 </html>

@@ -25,299 +25,477 @@
 
     <div class="auth-container">
 
+        <!-- ================================================= -->
         <!-- LEFT SIDE -->
+        <!-- ================================================= -->
 
         <section class="hero-panel">
 
-            <div class="brand">
-                <div class="brand-icon">🔐</div>
-
-                <div>
-                    <div class="brand-name">
-                        SecureGraphical
-                    </div>
-
-                    <div class="brand-subtitle">
-                        Graphical Password Authentication
-                    </div>
-                </div>
+            <div class="hero-badge">
+                GRAPHICAL PASSWORD SECURITY
             </div>
 
+            <h1>
+                SecureGraphical
+            </h1>
 
-            <div class="hero-content">
+            <p class="hero-description">
 
-                <div class="security-badge">
-                    🛡️ Multi-Layer Security
-                </div>
+                A shoulder-surfing-resistant authentication
+                system combining textual passwords,
+                graphical passwords, pass colours,
+                CAPTCHA verification and account lockout.
 
-                <h1>
-                    Security beyond
-                    <span>traditional passwords.</span>
-                </h1>
+            </p>
 
-                <p>
-                    Protect your account using a combination of
-                    password authentication, graphical password
-                    verification and security verification.
-                </p>
+            <div class="security-features">
 
+                <div class="security-item">
 
-                <div class="security-features">
+                    <span class="security-icon">
+                        🔐
+                    </span>
 
-                    <div class="feature">
+                    <div>
+                        <strong>
+                            Graphical Authentication
+                        </strong>
 
-                        <div class="feature-icon">
-                            🔑
-                        </div>
-
-                        <div>
-                            <strong>
-                                Password Protection
-                            </strong>
-
-                            <small>
-                                Credentials are securely hashed.
-                            </small>
-                        </div>
-
-                    </div>
-
-
-                    <div class="feature">
-
-                        <div class="feature-icon">
-                            🎨
-                        </div>
-
-                        <div>
-                            <strong>
-                                Graphical Password
-                            </strong>
-
-                            <small>
-                                Select a unique sequence of symbols.
-                            </small>
-                        </div>
-
-                    </div>
-
-
-                    <div class="feature">
-
-                        <div class="feature-icon">
-                            🤖
-                        </div>
-
-                        <div>
-                            <strong>
-                                Security Verification
-                            </strong>
-
-                            <small>
-                                Additional verification helps prevent
-                                automated attacks.
-                            </small>
-                        </div>
-
+                        <small>
+                            Three-character graphical password
+                        </small>
                     </div>
 
                 </div>
 
-            </div>
+                <div class="security-item">
 
+                    <span class="security-icon">
+                        🎨
+                    </span>
 
-            <div class="hero-footer">
+                    <div>
+                        <strong>
+                            Pass Colour
+                        </strong>
 
-                <span>● System protected</span>
+                        <small>
+                            Additional authentication factor
+                        </small>
+                    </div>
 
-                <span>SecureGraphical v2.0</span>
+                </div>
+
+                <div class="security-item">
+
+                    <span class="security-icon">
+                        🛡️
+                    </span>
+
+                    <div>
+                        <strong>
+                            Security Verification
+                        </strong>
+
+                        <small>
+                            Mathematical CAPTCHA protection
+                        </small>
+                    </div>
+
+                </div>
+
+                <div class="security-item">
+
+                    <span class="security-icon">
+                        ⛔
+                    </span>
+
+                    <div>
+                        <strong>
+                            Login Lockout
+                        </strong>
+
+                        <small>
+                            Protection against repeated attacks
+                        </small>
+                    </div>
+
+                </div>
 
             </div>
 
         </section>
 
 
+        <!-- ================================================= -->
         <!-- RIGHT SIDE -->
+        <!-- ================================================= -->
 
-        <section class="login-panel">
+        <section class="auth-panel">
 
-            <div class="login-card">
+            <div class="auth-header">
 
-                <div class="mobile-logo">
-                    🔐
-                </div>
+                <span class="status-dot"></span>
+
+                <span>
+                    Secure Authentication
+                </span>
+
+            </div>
+
+
+            <!-- FLASH MESSAGES -->
+
+            {% with messages = get_flashed_messages(
+                with_categories=true
+            ) %}
+
+                {% if messages %}
+
+                    {% for category, message in messages %}
+
+                        <div class="flash {{ category }}">
+
+                            {{ message }}
+
+                        </div>
+
+                    {% endfor %}
+
+                {% endif %}
+
+            {% endwith %}
+
+
+            <!-- ================================================= -->
+            <!-- LOGIN -->
+            <!-- ================================================= -->
+
+            <form
+                action="{{ url_for('login') }}"
+                method="POST"
+                id="loginForm"
+            >
 
                 <div class="form-heading">
-
-                    <div class="eyebrow">
-                        SECURE ACCESS
-                    </div>
 
                     <h2>
                         Welcome back
                     </h2>
 
                     <p>
-                        Sign in to continue to your secure dashboard.
+                        Authenticate using multiple security layers.
                     </p>
 
                 </div>
 
 
-                <!-- FLASH MESSAGES -->
+                <!-- Username -->
 
-                {% with messages = get_flashed_messages(with_categories=true) %}
+                <div class="input-group">
 
-                    {% if messages %}
+                    <label>
+                        Username
+                    </label>
 
-                        <div class="flash-container">
+                    <input
+                        type="text"
+                        name="username"
+                        placeholder="Enter your username"
+                        required
+                    >
 
-                            {% for category, message in messages %}
+                </div>
 
-                                <div class="flash {{ category }}">
 
-                                    <span>
-                                        {% if category == "success" %}
-                                            ✓
-                                        {% else %}
-                                            !
-                                        {% endif %}
-                                    </span>
+                <!-- Password -->
 
-                                    {{ message }}
+                <div class="input-group">
 
-                                </div>
+                    <label>
+                        Password
+                    </label>
 
-                            {% endfor %}
+                    <input
+                        type="password"
+                        name="password"
+                        placeholder="Enter your password"
+                        required
+                    >
+
+                </div>
+
+
+                <!-- ================================================= -->
+                <!-- GRAPHICAL PASSWORD -->
+                <!-- ================================================= -->
+
+                <div class="graphical-box">
+
+                    <div class="section-title">
+
+                        <div>
+
+                            <h3>
+                                Graphical Password
+                            </h3>
+
+                            <p>
+                                Select exactly 3 characters.
+                            </p>
 
                         </div>
 
-                    {% endif %}
+                        <button
+                            type="button"
+                            class="refresh-button"
+                            onclick="generateGrid()"
+                        >
+                            ↻ Rotate
+                        </button>
 
-                {% endwith %}
+                    </div>
 
 
-                <!-- LOGIN FORM -->
+                    <div
+                        id="graphicalGrid"
+                        class="graphical-grid"
+                    ></div>
 
-                <form
-                    method="POST"
-                    action="{{ url_for('login') }}"
-                    class="auth-form"
-                >
 
-                    <div class="form-group">
+                    <div class="selection-area">
 
-                        <label for="username">
-                            Username
-                        </label>
+                        <span>
+                            Selected:
+                        </span>
 
-                        <div class="input-wrapper">
+                        <div
+                            id="selectedCharacters"
+                            class="selected-characters"
+                        ></div>
 
-                            <span class="input-icon">
-                                👤
-                            </span>
+                        <button
+                            type="button"
+                            class="clear-selection"
+                            onclick="clearSelection()"
+                        >
+                            Clear
+                        </button>
 
-                            <input
-                                type="text"
-                                id="username"
-                                name="username"
-                                placeholder="Enter your username"
-                                autocomplete="username"
-                                required
-                            >
+                    </div>
+
+
+                    <input
+                        type="hidden"
+                        name="graphical_sequence"
+                        id="graphicalSequence"
+                    >
+
+                </div>
+
+
+                <!-- ================================================= -->
+                <!-- PASS COLOUR -->
+                <!-- ================================================= -->
+
+                <div class="pass-color-box">
+
+                    <div class="section-title">
+
+                        <div>
+
+                            <h3>
+                                Pass Colour
+                            </h3>
+
+                            <p>
+                                Select your authentication colour.
+                            </p>
 
                         </div>
 
                     </div>
 
 
-                    <div class="form-group">
+                    <div
+                        id="passColors"
+                        class="pass-colors"
+                    >
 
-                        <label for="password">
-                            Password
-                        </label>
-
-                        <div class="input-wrapper">
-
-                            <span class="input-icon">
-                                🔑
-                            </span>
-
-                            <input
-                                type="password"
-                                id="password"
-                                name="password"
-                                placeholder="Enter your password"
-                                autocomplete="current-password"
-                                required
-                            >
+                        {% for color in [
+                            ("Red", "#ef4444"),
+                            ("Blue", "#3b82f6"),
+                            ("Green", "#22c55e"),
+                            ("Yellow", "#eab308"),
+                            ("Purple", "#a855f7"),
+                            ("Orange", "#f97316"),
+                            ("Pink", "#ec4899"),
+                            ("Cyan", "#06b6d4")
+                        ] %}
 
                             <button
                                 type="button"
-                                class="password-toggle"
-                                onclick="togglePassword()"
-                            >
-                                👁
-                            </button>
+                                class="color-choice"
+                                data-color="{{ color[0] }}"
+                                style="--color: {{ color[1] }}"
+                                onclick="selectPassColor(this)"
+                                title="{{ color[0] }}"
+                            ></button>
+
+                        {% endfor %}
+
+                    </div>
+
+
+                    <input
+                        type="hidden"
+                        name="pass_color"
+                        id="passColor"
+                    >
+
+                    <div
+                        id="selectedColorText"
+                        class="selected-color-text"
+                    >
+                        No colour selected
+                    </div>
+
+                </div>
+
+
+                <!-- ================================================= -->
+                <!-- SECURITY VERIFICATION -->
+                <!-- ================================================= -->
+
+                <div class="captcha-box">
+
+                    <div class="captcha-title">
+
+                        <span class="captcha-shield">
+                            🛡
+                        </span>
+
+                        <div>
+
+                            <h3>
+                                Security Verification
+                            </h3>
+
+                            <p>
+                                Verify that you are a human.
+                            </p>
 
                         </div>
 
                     </div>
 
 
-                    <button
-                        type="submit"
-                        class="primary-button"
-                    >
+                    <div class="captcha-content">
 
-                        <span>
-                            Continue
+                        <div class="captcha-question">
+                            {{ captcha_question }}
+                        </div>
+
+                        <span class="captcha-equals">
+                            =
                         </span>
 
-                        <span>
-                            →
-                        </span>
-
-                    </button>
-
-                </form>
-
-
-                <div class="divider">
-
-                    <span>
-                        New to SecureGraphical?
-                    </span>
-
-                </div>
-
-
-                <a
-                    href="{{ url_for('register') }}"
-                    class="secondary-button"
-                >
-                    Create a secure account
-                </a>
-
-
-                <div class="login-security-note">
-
-                    <span>🛡️</span>
-
-                    <div>
-
-                        <strong>
-                            Protected authentication
-                        </strong>
-
-                        <p>
-                            Your credentials are protected using
-                            secure password hashing.
-                        </p>
+                        <input
+                            type="number"
+                            name="captcha"
+                            placeholder="?"
+                            required
+                            autocomplete="off"
+                        >
 
                     </div>
 
                 </div>
+
+
+                <button
+                    type="submit"
+                    class="primary-button"
+                >
+
+                    <span>
+                        🔐
+                    </span>
+
+                    Login Securely
+
+                </button>
+
+
+            </form>
+
+
+            <div class="divider">
+
+                <span>
+                    NEW USER?
+                </span>
+
+            </div>
+
+
+            <!-- ================================================= -->
+            <!-- REGISTER -->
+            <!-- ================================================= -->
+
+            <form
+                action="{{ url_for('register') }}"
+                method="POST"
+                id="registerForm"
+            >
+
+                <input
+                    type="hidden"
+                    name="username"
+                    id="registerUsername"
+                >
+
+                <input
+                    type="hidden"
+                    name="password"
+                    id="registerPassword"
+                >
+
+                <input
+                    type="hidden"
+                    name="captcha"
+                    id="registerCaptcha"
+                >
+
+                <input
+                    type="hidden"
+                    name="graphical_sequence"
+                    id="registerGraphicalSequence"
+                >
+
+                <input
+                    type="hidden"
+                    name="pass_color"
+                    id="registerPassColor"
+                >
+
+            </form>
+
+
+            <button
+                type="button"
+                class="secondary-button"
+                onclick="openRegister()"
+            >
+                Create New Account
+            </button>
+
+
+            <div class="auth-footer">
+
+                <span>
+                    Protected by multi-factor graphical authentication
+                </span>
 
             </div>
 
@@ -328,24 +506,450 @@
 </div>
 
 
+<!-- ========================================================= -->
+<!-- REGISTER MODAL -->
+<!-- ========================================================= -->
+
+<div
+    id="registerModal"
+    class="modal-overlay"
+>
+
+    <div class="modal-card">
+
+        <button
+            class="modal-close"
+            onclick="closeRegister()"
+        >
+            ×
+        </button>
+
+        <div class="modal-icon">
+            ✨
+        </div>
+
+        <h2>
+            Create your account
+        </h2>
+
+        <p class="modal-description">
+            Create a strong authentication profile.
+        </p>
+
+
+        <div class="input-group">
+
+            <label>
+                Username
+            </label>
+
+            <input
+                type="text"
+                id="newUsername"
+                placeholder="Choose a username"
+            >
+
+        </div>
+
+
+        <div class="input-group">
+
+            <label>
+                Password
+            </label>
+
+            <input
+                type="password"
+                id="newPassword"
+                placeholder="Create a password"
+            >
+
+        </div>
+
+
+        <div class="modal-security-note">
+
+            <strong>
+                Your graphical password
+            </strong>
+
+            <p>
+                Use the same 3-character sequence and pass colour
+                that you want to use for login.
+            </p>
+
+        </div>
+
+
+        <button
+            type="button"
+            class="primary-button"
+            onclick="prepareRegistration()"
+        >
+            Continue
+        </button>
+
+    </div>
+
+</div>
+
+
 <script>
 
-function togglePassword() {
+let selectedCharacters = [];
+let selectedPassColor = "";
+
+
+/* =========================================================
+   GRAPHICAL GRID
+   ========================================================= */
+
+async function generateGrid() {
+
+    const response = await fetch(
+        "{{ url_for('generate_grid') }}"
+    );
+
+    const data = await response.json();
+
+    const grid = document.getElementById(
+        "graphicalGrid"
+    );
+
+    grid.innerHTML = "";
+
+    grid.style.transform =
+        `rotate(${data.rotation}deg)`;
+
+    data.grid.forEach(item => {
+
+        const button =
+            document.createElement("button");
+
+        button.type = "button";
+
+        button.className =
+            "graphical-button";
+
+        button.dataset.char =
+            item.char;
+
+        button.dataset.color =
+            item.color;
+
+        button.style.setProperty(
+            "--tile-color",
+            item.hex
+        );
+
+        button.innerHTML = `
+            <span class="tile-number">
+                ${item.position}
+            </span>
+
+            <span class="tile-char">
+                ${item.char}
+            </span>
+
+            <span class="tile-color-name">
+                ${item.color}
+            </span>
+        `;
+
+        button.addEventListener(
+            "click",
+            function() {
+
+                const char =
+                    this.dataset.char;
+
+                if (
+                    selectedCharacters.length >= 3
+                ) {
+
+                    return;
+
+                }
+
+                selectedCharacters.push(
+                    char
+                );
+
+                this.classList.add(
+                    "selected"
+                );
+
+                updateSelection();
+
+            }
+        );
+
+        grid.appendChild(button);
+
+    });
+
+}
+
+
+/* =========================================================
+   SELECTED CHARACTERS
+   ========================================================= */
+
+function updateSelection() {
+
+    const container =
+        document.getElementById(
+            "selectedCharacters"
+        );
+
+    const hidden =
+        document.getElementById(
+            "graphicalSequence"
+        );
+
+    container.innerHTML = "";
+
+    selectedCharacters.forEach(
+        (char, index) => {
+
+            const item =
+                document.createElement(
+                    "span"
+                );
+
+            item.className =
+                "selected-character";
+
+            item.innerHTML = `
+                ${index + 1}: ${char}
+            `;
+
+            container.appendChild(
+                item
+            );
+
+        }
+    );
+
+    hidden.value =
+        selectedCharacters.join(",");
+
+}
+
+
+/* =========================================================
+   CLEAR
+   ========================================================= */
+
+function clearSelection() {
+
+    selectedCharacters = [];
+
+    document
+        .querySelectorAll(
+            ".graphical-button"
+        )
+        .forEach(button => {
+
+            button.classList.remove(
+                "selected"
+            );
+
+        });
+
+    updateSelection();
+
+}
+
+
+/* =========================================================
+   PASS COLOUR
+   ========================================================= */
+
+function selectPassColor(button) {
+
+    document
+        .querySelectorAll(
+            ".color-choice"
+        )
+        .forEach(item => {
+
+            item.classList.remove(
+                "selected"
+            );
+
+        });
+
+    button.classList.add(
+        "selected"
+    );
+
+    selectedPassColor =
+        button.dataset.color;
+
+    document.getElementById(
+        "passColor"
+    ).value =
+        selectedPassColor;
+
+    document.getElementById(
+        "selectedColorText"
+    ).textContent =
+        "Selected colour: " +
+        selectedPassColor;
+
+}
+
+
+/* =========================================================
+   REGISTER MODAL
+   ========================================================= */
+
+function openRegister() {
+
+    document
+        .getElementById(
+            "registerModal"
+        )
+        .classList.add(
+            "active"
+        );
+
+}
+
+
+function closeRegister() {
+
+    document
+        .getElementById(
+            "registerModal"
+        )
+        .classList.remove(
+            "active"
+        );
+
+}
+
+
+/* =========================================================
+   REGISTRATION
+   ========================================================= */
+
+function prepareRegistration() {
+
+    const username =
+        document.getElementById(
+            "newUsername"
+        ).value.trim();
 
     const password =
-        document.getElementById("password");
+        document.getElementById(
+            "newPassword"
+        ).value.trim();
 
-    if (password.type === "password") {
+    if (!username || !password) {
 
-        password.type = "text";
+        alert(
+            "Please enter username and password."
+        );
 
-    } else {
-
-        password.type = "password";
+        return;
 
     }
 
+    if (
+        selectedCharacters.length !== 3
+    ) {
+
+        alert(
+            "Please select exactly 3 graphical characters first."
+        );
+
+        closeRegister();
+
+        return;
+
+    }
+
+    if (!selectedPassColor) {
+
+        alert(
+            "Please select a pass colour first."
+        );
+
+        closeRegister();
+
+        return;
+
+    }
+
+    /*
+       Registration requires a CAPTCHA.
+
+       We create a new CAPTCHA by using
+       the same question displayed on the page.
+    */
+
+    const captchaAnswer =
+        prompt(
+            "Security Verification\n\nPlease solve the CAPTCHA shown on the page:\n{{ captcha_question }}"
+        );
+
+    if (
+        captchaAnswer === null ||
+        captchaAnswer.trim() === ""
+    ) {
+
+        return;
+
+    }
+
+    document.getElementById(
+        "registerUsername"
+    ).value =
+        username;
+
+    document.getElementById(
+        "registerPassword"
+    ).value =
+        password;
+
+    document.getElementById(
+        "registerCaptcha"
+    ).value =
+        captchaAnswer;
+
+    document.getElementById(
+        "registerGraphicalSequence"
+    ).value =
+        selectedCharacters.join(",");
+
+    document.getElementById(
+        "registerPassColor"
+    ).value =
+        selectedPassColor;
+
+    document
+        .getElementById(
+            "registerForm"
+        )
+        .submit();
+
 }
+
+
+/* =========================================================
+   INITIALIZE
+   ========================================================= */
+
+document.addEventListener(
+    "DOMContentLoaded",
+    function() {
+
+        generateGrid();
+
+    }
+);
 
 </script>
 

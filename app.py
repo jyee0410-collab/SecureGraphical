@@ -5,39 +5,37 @@ import sqlite3
 import random
 import hashlib
 import os
-import time
 from functools import wraps
 
 app = Flask(__name__)
 
 # =========================================================
-# CONFIGURATION
+# SECURITY CONFIGURATION
 # =========================================================
 
 app.secret_key = os.environ.get(
     "SECRET_KEY",
-    "development-only-secret-key"
+    "development-secret-key-change-this"
 )
 
 DATABASE = "securegraphical.db"
 
-MAX_LOGIN_ATTEMPTS = 5
-LOCKOUT_SECONDS = 300
-
-# Original project alphabet:
-# 8 lowercase letters + 8 numbers
-CHARACTERS = list("abcdefgh12345678")
-
-COLOURS = [
+# 8 colours used by the graphical password system
+COLORS = [
     "red",
-    "orange",
-    "yellow",
-    "green",
     "blue",
+    "green",
+    "yellow",
     "purple",
+    "orange",
     "pink",
-    "brown"
+    "cyan"
 ]
+
+# 16-character alphabet
+CHARACTERS = list(
+    "abcdefgh12345678"
+)
 
 
 # =========================================================
@@ -61,14 +59,12 @@ def init_database():
             email TEXT NOT NULL UNIQUE,
             password_hash TEXT NOT NULL,
             graphical_password_hash TEXT NOT NULL,
+            pass_color TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
     """)
 
-    # -----------------------------------------------------
-    # Upgrade existing database
-    # -----------------------------------------------------
-
+    # Upgrade an older database automatically
     columns = [
         row["name"]
         for row in db.execute(
@@ -76,25 +72,18 @@ def init_database():
         ).fetchall()
     ]
 
-    if "pass_colour_hash" not in columns:
+    if "pass_color" not in columns:
 
         db.execute("""
             ALTER TABLE users
-            ADD COLUMN pass_colour_hash TEXT
+            ADD COLUMN pass_color TEXT
         """)
 
-    if "failed_attempts" not in columns:
-
+        # Existing accounts receive a default colour
         db.execute("""
-            ALTER TABLE users
-            ADD COLUMN failed_attempts INTEGER DEFAULT 0
-        """)
-
-    if "locked_until" not in columns:
-
-        db.execute("""
-            ALTER TABLE users
-            ADD COLUMN locked_until REAL DEFAULT 0
+            UPDATE users
+            SET pass_color = 'red'
+            WHERE pass_color IS NULL
         """)
 
     db.commit()
@@ -120,7 +109,7 @@ def create_captcha():
 
 
 # =========================================================
-# HASHING
+# GRAPHICAL PASSWORD HASH
 # =========================================================
 
 def hash_graphical_password(sequence):
@@ -132,11 +121,34 @@ def hash_graphical_password(sequence):
     ).hexdigest()
 
 
-def hash_pass_colour(colour):
+# =========================================================
+# RANDOM GRAPHICAL PASSWORD BOARD
+# =========================================================
 
-    return hashlib.sha256(
-        colour.encode("utf-8")
-    ).hexdigest()
+def create_graphical_board():
+
+    # Randomise the 16 characters
+    shuffled_characters = CHARACTERS.copy()
+    random.shuffle(shuffled_characters)
+
+    # Randomise the colour positions
+    shuffled_colors = COLORS.copy()
+    random.shuffle(shuffled_colors)
+
+    # Divide 16 characters into 8 sectors
+    sectors = []
+
+    for i in range(8):
+
+        sectors.append({
+            "color": shuffled_colors[i],
+            "characters": [
+                shuffled_characters[i * 2],
+                shuffled_characters[i * 2 + 1]
+            ]
+        })
+
+    return sectors
 
 
 # =========================================================
@@ -165,189 +177,6 @@ def login_required(function):
 
 
 # =========================================================
-# ACCOUNT LOCKOUT
-# =========================================================
-
-def is_account_locked(user):
-
-    locked_until = user["locked_until"] or 0
-
-    if locked_until <= 0:
-        return False
-
-    if time.time() >= locked_until:
-        return False
-
-    return True
-
-
-def get_remaining_lockout(user):
-
-    locked_until = user["locked_until"] or 0
-
-    remaining = int(
-        max(
-            0,
-            locked_until - time.time()
-        )
-    )
-
-    return remaining
-
-
-def reset_login_attempts(user_id):
-
-    db = get_db()
-
-    db.execute("""
-        UPDATE users
-        SET failed_attempts = 0,
-            locked_until = 0
-        WHERE id = ?
-    """, (user_id,))
-
-    db.commit()
-    db.close()
-
-
-def register_failed_attempt(user_id):
-
-    db = get_db()
-
-    user = db.execute("""
-        SELECT failed_attempts
-        FROM users
-        WHERE id = ?
-    """, (user_id,)).fetchone()
-
-    attempts = (
-        user["failed_attempts"] or 0
-    ) + 1
-
-    if attempts >= MAX_LOGIN_ATTEMPTS:
-
-        locked_until = (
-            time.time()
-            + LOCKOUT_SECONDS
-        )
-
-        db.execute("""
-            UPDATE users
-            SET failed_attempts = ?,
-                locked_until = ?
-            WHERE id = ?
-        """, (
-            attempts,
-            locked_until,
-            user_id
-        ))
-
-    else:
-
-        db.execute("""
-            UPDATE users
-            SET failed_attempts = ?
-            WHERE id = ?
-        """, (
-            attempts,
-            user_id
-        ))
-
-    db.commit()
-    db.close()
-
-    return attempts
-
-
-# =========================================================
-# GRAPHICAL CHALLENGE
-# =========================================================
-
-def create_graphical_challenge():
-
-    characters = CHARACTERS.copy()
-
-    random.shuffle(characters)
-
-    # Random initial rotation.
-    initial_rotation = random.randint(
-        0,
-        7
-    )
-
-    session["graphical_characters"] = characters
-
-    session["initial_rotation"] = (
-        initial_rotation
-    )
-
-    session["rotation"] = (
-        initial_rotation
-    )
-
-    # Each authentication receives a unique challenge ID.
-    session["challenge_id"] = (
-        hashlib.sha256(
-            os.urandom(32)
-        ).hexdigest()
-    )
-
-
-def rotate_characters(direction):
-
-    characters = session.get(
-        "graphical_characters"
-    )
-
-    if not characters:
-        return
-
-    rotation = session.get(
-        "rotation",
-        0
-    )
-
-    if direction == "clockwise":
-
-        rotation = (
-            rotation + 1
-        ) % 8
-
-    elif direction == "counterclockwise":
-
-        rotation = (
-            rotation - 1
-        ) % 8
-
-    session["rotation"] = rotation
-
-
-def get_current_characters():
-
-    characters = session.get(
-        "graphical_characters",
-        []
-    )
-
-    rotation = session.get(
-        "rotation",
-        0
-    )
-
-    if not characters:
-        return []
-
-    rotation = rotation % len(
-        characters
-    )
-
-    return (
-        characters[rotation:]
-        + characters[:rotation]
-    )
-
-
-# =========================================================
 # HOME
 # =========================================================
 
@@ -355,11 +184,11 @@ def get_current_characters():
 def home():
 
     if "captcha_question" not in session:
-
         create_captcha()
 
     return render_template(
-        "index.html"
+        "index.html",
+        captcha=session.get("captcha_question")
     )
 
 
@@ -398,8 +227,8 @@ def register():
         ""
     ).strip()
 
-    pass_colour = request.form.get(
-        "pass_colour",
+    pass_color = request.form.get(
+        "pass_color",
         ""
     ).strip().lower()
 
@@ -419,20 +248,14 @@ def register():
         create_captcha()
 
         return redirect(
-            url_for("home")
-            + "#register"
+            url_for("home") + "#register"
         )
 
     # -----------------------------------------------------
-    # Required fields
+    # REQUIRED FIELDS
     # -----------------------------------------------------
 
-    if (
-        not name
-        or not email
-        or not password
-        or not pass_colour
-    ):
+    if not name or not email or not password:
 
         flash(
             "Please complete all required fields.",
@@ -442,33 +265,11 @@ def register():
         create_captcha()
 
         return redirect(
-            url_for("home")
-            + "#register"
+            url_for("home") + "#register"
         )
 
     # -----------------------------------------------------
-    # Password length
-    #
-    # Original specification:
-    # 4 <= L <= 8
-    # -----------------------------------------------------
-
-    if len(password) < 4 or len(password) > 8:
-
-        flash(
-            "Password must contain 4 to 8 characters.",
-            "error"
-        )
-
-        create_captcha()
-
-        return redirect(
-            url_for("home")
-            + "#register"
-        )
-
-    # -----------------------------------------------------
-    # Password confirmation
+    # PASSWORD CONFIRMATION
     # -----------------------------------------------------
 
     if password != confirm_password:
@@ -481,30 +282,66 @@ def register():
         create_captcha()
 
         return redirect(
-            url_for("home")
-            + "#register"
+            url_for("home") + "#register"
         )
 
     # -----------------------------------------------------
-    # Pass-colour validation
+    # PASSWORD LENGTH
     # -----------------------------------------------------
 
-    if pass_colour not in COLOURS:
+    if len(password) < 4 or len(password) > 8:
 
         flash(
-            "Please select a valid pass-colour.",
+            "Password must contain 4 to 8 characters.",
             "error"
         )
 
         create_captcha()
 
         return redirect(
-            url_for("home")
-            + "#register"
+            url_for("home") + "#register"
         )
 
     # -----------------------------------------------------
-    # Store registration temporarily
+    # PASSWORD CHARACTER CHECK
+    # -----------------------------------------------------
+
+    password_lower = password.lower()
+
+    for character in password_lower:
+
+        if character not in CHARACTERS:
+
+            flash(
+                "Password may only contain a-h and 1-8.",
+                "error"
+            )
+
+            create_captcha()
+
+            return redirect(
+                url_for("home") + "#register"
+            )
+
+    # -----------------------------------------------------
+    # PASS-COLOR
+    # -----------------------------------------------------
+
+    if pass_color not in COLORS:
+
+        flash(
+            "Please select a valid pass-color.",
+            "error"
+        )
+
+        create_captcha()
+
+        return redirect(
+            url_for("home") + "#register"
+        )
+
+    # -----------------------------------------------------
+    # STORE TEMPORARY REGISTRATION DATA
     # -----------------------------------------------------
 
     session["registration_name"] = name
@@ -512,27 +349,21 @@ def register():
     session["registration_email"] = email
 
     session["registration_password_hash"] = (
-        generate_password_hash(
-            password
-        )
+        generate_password_hash(password_lower)
     )
 
-    session["registration_pass_colour_hash"] = (
-        hash_pass_colour(
-            pass_colour
-        )
+    session["registration_pass_color"] = pass_color
+
+    session["registration_graphical_password"] = (
+        password_lower
     )
 
     # -----------------------------------------------------
-    # Create graphical challenge
+    # GRAPHICAL PASSWORD SETUP
     # -----------------------------------------------------
-
-    create_graphical_challenge()
 
     return redirect(
-        url_for(
-            "create_graphical_password"
-        )
+        url_for("create_graphical_password")
     )
 
 
@@ -554,40 +385,36 @@ def create_graphical_password():
 
     if request.method == "POST":
 
-        selected = request.form.getlist(
-            "selected_images"
+        graphical_sequence = request.form.get(
+            "graphical_sequence",
+            ""
+        ).strip().lower()
+
+        expected_password = session.get(
+            "registration_graphical_password"
         )
 
-        # -------------------------------------------------
-        # Compatibility with new character system
-        # -------------------------------------------------
-
-        if not selected:
-
-            selected = request.form.getlist(
-                "selected_characters"
-            )
-
-        # User must select between 4 and 8
-        # characters according to password length.
-
-        if len(selected) < 4 or len(selected) > 8:
+        if graphical_sequence != expected_password:
 
             flash(
-                "Please select between 4 and 8 characters.",
+                "Please complete the graphical password correctly.",
                 "error"
             )
 
             return render_template(
                 "graphical_password.html",
                 mode="register",
-                characters=get_current_characters()
+                sectors=create_graphical_board(),
+                pass_color=session.get(
+                    "registration_pass_color"
+                ),
+                password_length=len(
+                    expected_password
+                )
             )
 
-        graphical_hash = (
-            hash_graphical_password(
-                selected
-            )
+        graphical_hash = hash_graphical_password(
+            list(graphical_sequence)
         )
 
         name = session[
@@ -602,8 +429,8 @@ def create_graphical_password():
             "registration_password_hash"
         ]
 
-        pass_colour_hash = session[
-            "registration_pass_colour_hash"
+        pass_color = session[
+            "registration_pass_color"
         ]
 
         db = get_db()
@@ -618,18 +445,16 @@ def create_graphical_password():
                     email,
                     password_hash,
                     graphical_password_hash,
-                    pass_colour_hash,
-                    failed_attempts,
-                    locked_until
+                    pass_color
                 )
-                VALUES (?, ?, ?, ?, ?, 0, 0)
+                VALUES (?, ?, ?, ?, ?)
                 """,
                 (
                     name,
                     email,
                     password_hash,
                     graphical_hash,
-                    pass_colour_hash
+                    pass_color
                 )
             )
 
@@ -649,48 +474,60 @@ def create_graphical_password():
             )
 
             return redirect(
-                url_for("home")
-                + "#register"
+                url_for("home") + "#register"
             )
 
         db.close()
 
-        # -------------------------------------------------
-        # Clear registration data
-        # -------------------------------------------------
-
-        for key in [
+        session.pop(
             "registration_name",
-            "registration_email",
-            "registration_password_hash",
-            "registration_pass_colour_hash",
-            "graphical_characters",
-            "initial_rotation",
-            "rotation",
-            "challenge_id"
-        ]:
+            None
+        )
 
-            session.pop(
-                key,
-                None
-            )
+        session.pop(
+            "registration_email",
+            None
+        )
+
+        session.pop(
+            "registration_password_hash",
+            None
+        )
+
+        session.pop(
+            "registration_pass_color",
+            None
+        )
+
+        session.pop(
+            "registration_graphical_password",
+            None
+        )
 
         create_captcha()
 
         flash(
-            "Registration successful! Please login.",
+            "Registration successful! You can now login.",
             "success"
         )
 
         return redirect(
-            url_for("home")
-            + "#login"
+            url_for("home") + "#login"
         )
+
+    password = session.get(
+        "registration_graphical_password",
+        ""
+    )
 
     return render_template(
         "graphical_password.html",
         mode="register",
-        characters=get_current_characters()
+        sectors=create_graphical_board(),
+        pass_color=session.get(
+            "registration_pass_color"
+        ),
+        password_length=len(password)
     )
 
 
@@ -735,12 +572,11 @@ def login():
         create_captcha()
 
         return redirect(
-            url_for("home")
-            + "#login"
+            url_for("home") + "#login"
         )
 
     # -----------------------------------------------------
-    # Find user
+    # FIND USER
     # -----------------------------------------------------
 
     db = get_db()
@@ -766,79 +602,31 @@ def login():
         create_captcha()
 
         return redirect(
-            url_for("home")
-            + "#login"
+            url_for("home") + "#login"
         )
 
     # -----------------------------------------------------
-    # Account lockout
+    # CHECK TEXT PASSWORD
     # -----------------------------------------------------
 
-    if is_account_locked(user):
-
-        remaining = get_remaining_lockout(
-            user
-        )
-
-        minutes = remaining // 60
-        seconds = remaining % 60
+    if not check_password_hash(
+        user["password_hash"],
+        password.lower()
+    ):
 
         flash(
-            f"Account temporarily locked. "
-            f"Try again in {minutes:02d}:{seconds:02d}.",
+            "Invalid email or password.",
             "error"
         )
 
         create_captcha()
 
         return redirect(
-            url_for("home")
-            + "#login"
+            url_for("home") + "#login"
         )
 
     # -----------------------------------------------------
-    # Password verification
-    # -----------------------------------------------------
-
-    if not check_password_hash(
-        user["password_hash"],
-        password
-    ):
-
-        attempts = register_failed_attempt(
-            user["id"]
-        )
-
-        if attempts >= MAX_LOGIN_ATTEMPTS:
-
-            flash(
-                "Too many failed attempts. "
-                "Your account has been temporarily locked.",
-                "error"
-            )
-
-        else:
-
-            remaining_attempts = (
-                MAX_LOGIN_ATTEMPTS
-                - attempts
-            )
-
-            flash(
-                f"Invalid email or password. "
-                f"{remaining_attempts} attempt(s) remaining.",
-                "error"
-            )
-
-        create_captcha()
-
-        return redirect(
-            url_for("home")
-            + "#login"
-        )
-
-    # -----------------------------------------------------
-    # Temporary login session
+    # TEMPORARY LOGIN SESSION
     # -----------------------------------------------------
 
     session["login_user_id"] = user["id"]
@@ -847,67 +635,14 @@ def login():
 
     session["login_user_email"] = user["email"]
 
-    session["login_user_pass_colour_hash"] = (
-        user["pass_colour_hash"]
-    )
+    session["login_pass_color"] = user["pass_color"]
 
     # -----------------------------------------------------
-    # New graphical challenge
+    # GRAPHICAL PASSWORD
     # -----------------------------------------------------
 
-    create_graphical_challenge()
-
     return redirect(
-        url_for(
-            "verify_graphical_password"
-        )
-    )
-
-
-# =========================================================
-# GRAPHICAL PASSWORD ROTATION
-# =========================================================
-
-@app.route(
-    "/rotate-graphical-password",
-    methods=["POST"]
-)
-def rotate_graphical_password():
-
-    if "login_user_id" not in session:
-
-        return redirect(
-            url_for("home")
-        )
-
-    direction = request.form.get(
-        "direction"
-    )
-
-    if direction not in [
-        "clockwise",
-        "counterclockwise"
-    ]:
-
-        flash(
-            "Invalid rotation request.",
-            "error"
-        )
-
-        return redirect(
-            url_for(
-                "verify_graphical_password"
-            )
-        )
-
-    rotate_characters(
-        direction
-    )
-
-    return redirect(
-        url_for(
-            "verify_graphical_password"
-        )
+        url_for("verify_graphical_password")
     )
 
 
@@ -927,33 +662,57 @@ def verify_graphical_password():
             url_for("home")
         )
 
-    # -----------------------------------------------------
-    # POST verification
-    # -----------------------------------------------------
-
     if request.method == "POST":
 
-        selected = request.form.getlist(
-            "selected_characters"
-        )
+        graphical_sequence = request.form.get(
+            "graphical_sequence",
+            ""
+        ).strip().lower()
 
-        if len(selected) < 4 or len(selected) > 8:
+        # -------------------------------------------------
+        # CHARACTER VALIDATION
+        # -------------------------------------------------
+
+        if not graphical_sequence:
 
             flash(
-                "Please select between 4 and 8 characters.",
+                "Please enter your graphical password.",
                 "error"
             )
 
             return render_template(
                 "graphical_password.html",
                 mode="login",
-                characters=get_current_characters()
+                sectors=create_graphical_board(),
+                pass_color=session.get(
+                    "login_pass_color"
+                )
             )
 
-        submitted_hash = (
-            hash_graphical_password(
-                selected
-            )
+        for character in graphical_sequence:
+
+            if character not in CHARACTERS:
+
+                flash(
+                    "Invalid character detected.",
+                    "error"
+                )
+
+                return render_template(
+                    "graphical_password.html",
+                    mode="login",
+                    sectors=create_graphical_board(),
+                    pass_color=session.get(
+                        "login_pass_color"
+                    )
+                )
+
+        # -------------------------------------------------
+        # HASH SUBMITTED GRAPHICAL PASSWORD
+        # -------------------------------------------------
+
+        submitted_hash = hash_graphical_password(
+            list(graphical_sequence)
         )
 
         db = get_db()
@@ -972,7 +731,7 @@ def verify_graphical_password():
         db.close()
 
         # -------------------------------------------------
-        # Graphical authentication
+        # VERIFY GRAPHICAL PASSWORD
         # -------------------------------------------------
 
         if (
@@ -981,118 +740,51 @@ def verify_graphical_password():
             == user["graphical_password_hash"]
         ):
 
-            reset_login_attempts(
-                user["id"]
-            )
+            user_id = user["id"]
+
+            user_name = user["name"]
+
+            user_email = user["email"]
+
+            user_color = user["pass_color"]
 
             session.clear()
 
-            session["user_id"] = (
-                user["id"]
-            )
+            session["user_id"] = user_id
 
-            session["user_name"] = (
-                user["name"]
-            )
+            session["user_name"] = user_name
 
-            session["user_email"] = (
-                user["email"]
-            )
+            session["user_email"] = user_email
 
-            session["authenticated_at"] = (
-                int(time.time())
-            )
+            session["user_color"] = user_color
 
             return redirect(
                 url_for("dashboard")
             )
 
         # -------------------------------------------------
-        # Wrong graphical password
+        # FAILED GRAPHICAL PASSWORD
         # -------------------------------------------------
 
-        attempts = register_failed_attempt(
-            user["id"]
-        )
-
-        # Remove temporary login session.
-
-        session.pop(
-            "login_user_id",
-            None
-        )
-
-        session.pop(
-            "login_user_name",
-            None
-        )
-
-        session.pop(
-            "login_user_email",
-            None
-        )
-
-        session.pop(
-            "login_user_pass_colour_hash",
-            None
-        )
-
-        session.pop(
-            "graphical_characters",
-            None
-        )
-
-        session.pop(
-            "rotation",
-            None
-        )
-
-        session.pop(
-            "initial_rotation",
-            None
-        )
-
-        session.pop(
-            "challenge_id",
-            None
-        )
+        session.clear()
 
         create_captcha()
 
-        if attempts >= MAX_LOGIN_ATTEMPTS:
-
-            flash(
-                "Too many failed authentication attempts. "
-                "Your account has been temporarily locked.",
-                "error"
-            )
-
-        else:
-
-            flash(
-                "Incorrect graphical password.",
-                "error"
-            )
-
-        return redirect(
-            url_for("home")
-            + "#login"
+        flash(
+            "Incorrect graphical password.",
+            "error"
         )
 
-    # -----------------------------------------------------
-    # GET
-    # -----------------------------------------------------
+        return redirect(
+            url_for("home") + "#login"
+        )
 
     return render_template(
         "graphical_password.html",
         mode="login",
-        characters=get_current_characters(),
-        rotation=session.get(
-            "rotation",
-            0
-        ),
-        challenge_id=session.get(
-            "challenge_id"
+        sectors=create_graphical_board(),
+        pass_color=session.get(
+            "login_pass_color"
         )
     )
 
@@ -1101,16 +793,18 @@ def verify_graphical_password():
 # DASHBOARD
 # =========================================================
 
-@app.route(
-    "/dashboard"
-)
+@app.route("/dashboard")
 @login_required
 def dashboard():
 
     return render_template(
         "dashboard.html",
         name=session["user_name"],
-        email=session["user_email"]
+        email=session["user_email"],
+        pass_color=session.get(
+            "user_color",
+            "red"
+        )
     )
 
 
@@ -1118,19 +812,12 @@ def dashboard():
 # LOGOUT
 # =========================================================
 
-@app.route(
-    "/logout"
-)
+@app.route("/logout")
 def logout():
 
     session.clear()
 
     create_captcha()
-
-    flash(
-        "You have been logged out.",
-        "success"
-    )
 
     return redirect(
         url_for("home")
@@ -1138,34 +825,12 @@ def logout():
 
 
 # =========================================================
-# ERROR HANDLERS
+# RUN
 # =========================================================
-
-@app.errorhandler(404)
-def page_not_found(error):
-
-    return render_template(
-        "index.html"
-    ), 404
-
-
-@app.errorhandler(500)
-def internal_server_error(error):
-
-    return """
-    <h1>SecureGraphical Server Error</h1>
-    <p>Please try again later.</p>
-    """, 500
-
-
-# =========================================================
-# START APPLICATION
-# =========================================================
-
-init_database()
-
 
 if __name__ == "__main__":
+
+    init_database()
 
     app.run(
         host="0.0.0.0",
@@ -1175,7 +840,6 @@ if __name__ == "__main__":
                 5000
             )
         ),
-        debug=False,
-        use_reloader=False
+        debug=False
     )
 ```

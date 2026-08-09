@@ -7,403 +7,272 @@
 
     <meta
         name="viewport"
-        content="width=device-width, initial-scale=1.0">
+        content="width=device-width, initial-scale=1.0"
+    >
 
-    <meta
-        name="description"
-        content="SecureGraphical authentication system">
-
-    <title>
-        SecureGraphical | Secure Authentication
-    </title>
+    <title>SecureGraphical | Secure Login</title>
 
     <link
         rel="stylesheet"
-        href="{{ url_for('static', filename='style.css') }}">
+        href="{{ url_for('static', filename='style.css') }}"
+    >
 
 </head>
 
-
 <body>
 
+<div class="page">
 
-<header class="site-nav">
+    <div class="auth-container">
 
-    <a href="/" class="brand">
+        <!-- LEFT SIDE -->
 
-        <div class="brand-mark">
-            <span></span>
-            <span></span>
-            <span></span>
-        </div>
+        <section class="hero-panel">
 
-        <div>
-            <strong>
-                SecureGraphical
-            </strong>
-
-            <small>
-                Secure Authentication
-            </small>
-        </div>
-
-    </a>
-
-
-    <div class="nav-status">
-
-        <span class="online-dot"></span>
-
-        System Online
-
-    </div>
-
-</header>
-
-
-
-<main class="landing">
-
-
-    <section class="hero">
-
-        <div class="hero-copy">
-
-            <div class="mini-label">
-                GRAPHICAL PASSWORD SECURITY
-            </div>
-
-            <h1>
-
-                Authentication
-                <span>
-                    beyond passwords.
-                </span>
-
-            </h1>
-
-            <p>
-
-                SecureGraphical combines textual passwords,
-                colour-based graphical authentication and
-                dynamic character rotation to improve
-                resistance against shoulder-surfing attacks.
-
-            </p>
-
-
-            <div class="hero-features">
+            <div class="brand">
+                <div class="brand-icon">🔐</div>
 
                 <div>
-                    <b>01</b>
-                    Text Password
+                    <div class="brand-name">
+                        SecureGraphical
+                    </div>
+
+                    <div class="brand-subtitle">
+                        Graphical Password Authentication
+                    </div>
                 </div>
-
-                <div>
-                    <b>02</b>
-                    Pass-Color
-                </div>
-
-                <div>
-                    <b>03</b>
-                    Dynamic Wheel
-                </div>
-
-            </div>
-
-        </div>
-
-
-
-        <div class="auth-card">
-
-            <div class="auth-tabs">
-
-                <a
-                    href="#login"
-                    class="auth-tab active">
-
-                    Login
-
-                </a>
-
-                <a
-                    href="#register"
-                    class="auth-tab">
-
-                    Register
-
-                </a>
-
             </div>
 
 
+            <div class="hero-content">
 
-            {% with messages = get_flashed_messages(
-                with_categories=true
-            ) %}
-
-                {% if messages %}
-
-                    <div class="flash-area">
-
-                        {% for category, message in messages %}
-
-                            <div
-                                class="flash {{ category }}">
-
-                                {{ message }}
-
-                            </div>
-
-                        {% endfor %}
-
-                    </div>
-
-                {% endif %}
-
-            {% endwith %}
-
-
-
-            <!-- LOGIN -->
-
-            <section
-                id="login"
-                class="auth-form">
-
-                <div class="form-heading">
-
-                    <span class="form-icon">
-                        →
-                    </span>
-
-                    <div>
-
-                        <h2>
-                            Welcome back
-                        </h2>
-
-                        <p>
-                            Authenticate to continue.
-                        </p>
-
-                    </div>
-
+                <div class="security-badge">
+                    🛡️ Multi-Layer Security
                 </div>
 
+                <h1>
+                    Security beyond
+                    <span>traditional passwords.</span>
+                </h1>
 
-                <form
-                    method="POST"
-                    action="{{ url_for('login') }}">
-
-                    <label>
-                        Email address
-                    </label>
-
-                    <input
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        autocomplete="email"
-                        required>
+                <p>
+                    Protect your account using a combination of
+                    password authentication, graphical password
+                    verification and security verification.
+                </p>
 
 
-                    <label>
-                        Password
-                    </label>
+                <div class="security-features">
 
-                    <input
-                        type="password"
-                        name="password"
-                        placeholder="Enter your password"
-                        autocomplete="current-password"
-                        required>
+                    <div class="feature">
 
+                        <div class="feature-icon">
+                            🔑
+                        </div>
 
-                    <label>
-                        Security verification
-                    </label>
+                        <div>
+                            <strong>
+                                Password Protection
+                            </strong>
 
-                    <div class="captcha-box">
-
-                        <span>
-                            {{ captcha_question }}
-                        </span>
-
-                        <input
-                            type="text"
-                            name="captcha"
-                            placeholder="Answer"
-                            inputmode="numeric"
-                            required>
-
-                    </div>
-
-
-                    <button
-                        class="primary-button"
-                        type="submit">
-
-                        Continue to Graphical Authentication
-
-                        <span>
-                            →
-                        </span>
-
-                    </button>
-
-                </form>
-
-            </section>
-
-
-
-            <!-- REGISTER -->
-
-            <section
-                id="register"
-                class="auth-form register-form">
-
-                <div class="form-heading">
-
-                    <span class="form-icon">
-                        +
-                    </span>
-
-                    <div>
-
-                        <h2>
-                            Create account
-                        </h2>
-
-                        <p>
-                            Set up your secure authentication.
-                        </p>
-
-                    </div>
-
-                </div>
-
-
-                <form
-                    method="POST"
-                    action="{{ url_for('register') }}">
-
-                    <label>
-                        Full name
-                    </label>
-
-                    <input
-                        type="text"
-                        name="name"
-                        placeholder="Your name"
-                        autocomplete="name"
-                        required>
-
-
-                    <label>
-                        Email address
-                    </label>
-
-                    <input
-                        type="email"
-                        name="email"
-                        placeholder="you@example.com"
-                        autocomplete="email"
-                        required>
-
-
-                    <label>
-                        Password
-                    </label>
-
-                    <input
-                        id="registerPassword"
-                        type="password"
-                        name="password"
-                        placeholder="4–8 characters"
-                        minlength="4"
-                        maxlength="8"
-                        required>
-
-
-                    <div class="password-meter">
-
-                        <div
-                            id="strengthBar"
-                            class="strength-bar">
+                            <small>
+                                Credentials are securely hashed.
+                            </small>
                         </div>
 
                     </div>
 
-                    <div
-                        id="strengthText"
-                        class="strength-text">
 
-                        Password strength:
-                        <strong>
-                            —
-                        </strong>
+                    <div class="feature">
 
-                    </div>
+                        <div class="feature-icon">
+                            🎨
+                        </div>
 
+                        <div>
+                            <strong>
+                                Graphical Password
+                            </strong>
 
-                    <div class="password-rules">
-
-                        <span>
-                            ✓ 4–8 characters
-                        </span>
-
-                        <span>
-                            ✓ Use letters and numbers
-                        </span>
-
-                        <span>
-                            ✓ Avoid common passwords
-                        </span>
+                            <small>
+                                Select a unique sequence of symbols.
+                            </small>
+                        </div>
 
                     </div>
 
 
-                    <label>
-                        Confirm password
-                    </label>
+                    <div class="feature">
 
-                    <input
-                        type="password"
-                        name="confirm_password"
-                        placeholder="Repeat your password"
-                        minlength="4"
-                        maxlength="8"
-                        required>
+                        <div class="feature-icon">
+                            🤖
+                        </div>
+
+                        <div>
+                            <strong>
+                                Security Verification
+                            </strong>
+
+                            <small>
+                                Additional verification helps prevent
+                                automated attacks.
+                            </small>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
 
 
-                    <label>
-                        Security verification
-                    </label>
+            <div class="hero-footer">
 
-                    <div class="captcha-box">
+                <span>● System protected</span>
 
-                        <span>
-                            {{ captcha_question }}
-                        </span>
+                <span>SecureGraphical v2.0</span>
 
-                        <input
-                            type="text"
-                            name="captcha"
-                            placeholder="Answer"
-                            inputmode="numeric"
-                            required>
+            </div>
+
+        </section>
+
+
+        <!-- RIGHT SIDE -->
+
+        <section class="login-panel">
+
+            <div class="login-card">
+
+                <div class="mobile-logo">
+                    🔐
+                </div>
+
+                <div class="form-heading">
+
+                    <div class="eyebrow">
+                        SECURE ACCESS
+                    </div>
+
+                    <h2>
+                        Welcome back
+                    </h2>
+
+                    <p>
+                        Sign in to continue to your secure dashboard.
+                    </p>
+
+                </div>
+
+
+                <!-- FLASH MESSAGES -->
+
+                {% with messages = get_flashed_messages(with_categories=true) %}
+
+                    {% if messages %}
+
+                        <div class="flash-container">
+
+                            {% for category, message in messages %}
+
+                                <div class="flash {{ category }}">
+
+                                    <span>
+                                        {% if category == "success" %}
+                                            ✓
+                                        {% else %}
+                                            !
+                                        {% endif %}
+                                    </span>
+
+                                    {{ message }}
+
+                                </div>
+
+                            {% endfor %}
+
+                        </div>
+
+                    {% endif %}
+
+                {% endwith %}
+
+
+                <!-- LOGIN FORM -->
+
+                <form
+                    method="POST"
+                    action="{{ url_for('login') }}"
+                    class="auth-form"
+                >
+
+                    <div class="form-group">
+
+                        <label for="username">
+                            Username
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <span class="input-icon">
+                                👤
+                            </span>
+
+                            <input
+                                type="text"
+                                id="username"
+                                name="username"
+                                placeholder="Enter your username"
+                                autocomplete="username"
+                                required
+                            >
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="form-group">
+
+                        <label for="password">
+                            Password
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <span class="input-icon">
+                                🔑
+                            </span>
+
+                            <input
+                                type="password"
+                                id="password"
+                                name="password"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required
+                            >
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                onclick="togglePassword()"
+                            >
+                                👁
+                            </button>
+
+                        </div>
 
                     </div>
 
 
                     <button
+                        type="submit"
                         class="primary-button"
-                        type="submit">
+                    >
 
-                        Continue to Pass-Color Setup
+                        <span>
+                            Continue
+                        </span>
 
                         <span>
                             →
@@ -413,200 +282,73 @@
 
                 </form>
 
-            </section>
 
-        </div>
+                <div class="divider">
 
-    </section>
+                    <span>
+                        New to SecureGraphical?
+                    </span>
 
-
-
-    <section class="trust-section">
-
-        <div class="trust-card">
-
-            <span class="trust-number">
-                01
-            </span>
-
-            <div>
-
-                <strong>
-                    Dynamic Character Placement
-                </strong>
-
-                <p>
-                    16 characters are randomly distributed
-                    across 8 colour sectors.
-                </p>
-
-            </div>
-
-        </div>
+                </div>
 
 
-        <div class="trust-card">
+                <a
+                    href="{{ url_for('register') }}"
+                    class="secondary-button"
+                >
+                    Create a secure account
+                </a>
 
-            <span class="trust-number">
-                02
-            </span>
 
-            <div>
+                <div class="login-security-note">
 
-                <strong>
-                    Colour-Based Secret
-                </strong>
+                    <span>🛡️</span>
 
-                <p>
-                    One colour acts as the user's private
-                    pass-color while others become decoys.
-                </p>
+                    <div>
+
+                        <strong>
+                            Protected authentication
+                        </strong>
+
+                        <p>
+                            Your credentials are protected using
+                            secure password hashing.
+                        </p>
+
+                    </div>
+
+                </div>
 
             </div>
 
-        </div>
+        </section>
 
+    </div>
 
-        <div class="trust-card">
-
-            <span class="trust-number">
-                03
-            </span>
-
-            <div>
-
-                <strong>
-                    Shoulder-Surfing Resistance
-                </strong>
-
-                <p>
-                    Character positions change when the
-                    authentication wheel rotates.
-                </p>
-
-            </div>
-
-        </div>
-
-    </section>
-
-
-</main>
-
-
-
-<footer class="site-footer">
-
-    SecureGraphical
-
-    <span>•</span>
-
-    Improved Text-Based Shoulder-Surfing Resistant
-    Graphical Password Scheme
-
-</footer>
-
+</div>
 
 
 <script>
 
-const password =
-    document.getElementById(
-        "registerPassword"
-    );
+function togglePassword() {
 
-const strengthBar =
-    document.getElementById(
-        "strengthBar"
-    );
+    const password =
+        document.getElementById("password");
 
-const strengthText =
-    document.getElementById(
-        "strengthText"
-    );
+    if (password.type === "password") {
 
+        password.type = "text";
 
-if (password) {
+    } else {
 
-    password.addEventListener(
-        "input",
-        function () {
+        password.type = "password";
 
-            const value =
-                password.value;
-
-            let score = 0;
-
-            if (value.length >= 4)
-                score++;
-
-            if (value.length >= 6)
-                score++;
-
-            if (/[a-z]/.test(value))
-                score++;
-
-            if (/[A-Z]/.test(value))
-                score++;
-
-            if (/[0-9]/.test(value))
-                score++;
-
-            if (/[^A-Za-z0-9]/.test(value))
-                score++;
-
-
-            strengthBar.className =
-                "strength-bar";
-
-
-            if (value.length === 0) {
-
-                strengthText.innerHTML =
-                    'Password strength: <strong>—</strong>';
-
-            }
-
-            else if (score <= 2) {
-
-                strengthBar.classList.add(
-                    "weak"
-                );
-
-                strengthText.innerHTML =
-                    'Password strength: <strong>Weak</strong>';
-
-            }
-
-            else if (score <= 4) {
-
-                strengthBar.classList.add(
-                    "medium"
-                );
-
-                strengthText.innerHTML =
-                    'Password strength: <strong>Medium</strong>';
-
-            }
-
-            else {
-
-                strengthBar.classList.add(
-                    "strong"
-                );
-
-                strengthText.innerHTML =
-                    'Password strength: <strong>Strong</strong>';
-
-            }
-
-        }
-    );
+    }
 
 }
 
 </script>
 
-
 </body>
+
 </html>

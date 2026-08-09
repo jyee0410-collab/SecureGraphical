@@ -1,2761 +1,1427 @@
-```html
 <!DOCTYPE html>
+
 <html lang="en">
-
 <head>
-
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+```
+<meta name="description"
+      content="SecureGraphical - A multi-layer graphical password authentication system designed to reduce shoulder surfing risks.">
 
-    <meta name="description"
-          content="SecureGraphical - A colour-based textual graphical password authentication system designed to improve resistance against shoulder surfing.">
+<title>SecureGraphical | Secure Graphical Authentication</title>
 
-    <title>SecureGraphical | Secure Authentication</title>
+<style>
+    * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
 
+    :root {
+        --bg: #07111f;
+        --bg2: #0b1729;
+        --card: rgba(15, 29, 49, 0.82);
+        --border: rgba(255,255,255,0.10);
+        --text: #f5f8ff;
+        --muted: #91a4bd;
+        --primary: #5b8cff;
+        --primary2: #7c5cff;
+        --success: #35d49a;
+        --danger: #ff647c;
+    }
 
-    <style>
+    body {
+        font-family:
+            Inter,
+            ui-sans-serif,
+            system-ui,
+            -apple-system,
+            BlinkMacSystemFont,
+            "Segoe UI",
+            sans-serif;
 
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
+        min-height: 100vh;
+        color: var(--text);
+
+        background:
+            radial-gradient(
+                circle at 10% 10%,
+                rgba(91,140,255,0.20),
+                transparent 30%
+            ),
+            radial-gradient(
+                circle at 90% 20%,
+                rgba(124,92,255,0.16),
+                transparent 28%
+            ),
+            linear-gradient(
+                135deg,
+                #050b14 0%,
+                #07111f 45%,
+                #0b1729 100%
+            );
+    }
+
+    body::before {
+        content: "";
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+
+        background-image:
+            linear-gradient(
+                rgba(255,255,255,0.018) 1px,
+                transparent 1px
+            ),
+            linear-gradient(
+                90deg,
+                rgba(255,255,255,0.018) 1px,
+                transparent 1px
+            );
+
+        background-size: 40px 40px;
+    }
+
+    .page {
+        min-height: 100vh;
+        display: flex;
+        flex-direction: column;
+    }
+
+    /* NAVIGATION */
+
+    .navbar {
+        width: 100%;
+        padding: 22px 6%;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        position: relative;
+        z-index: 5;
+    }
+
+    .brand {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        font-weight: 800;
+        letter-spacing: -0.5px;
+    }
+
+    .brand-icon {
+        width: 42px;
+        height: 42px;
+        border-radius: 13px;
+
+        display: flex;
+        justify-content: center;
+        align-items: center;
+
+        background:
+            linear-gradient(
+                135deg,
+                var(--primary),
+                var(--primary2)
+            );
+
+        box-shadow:
+            0 8px 30px rgba(91,140,255,0.30);
+
+        font-size: 15px;
+    }
+
+    .brand-text {
+        font-size: 18px;
+    }
+
+    .brand-text span {
+        color: #7ea4ff;
+    }
+
+    .nav-status {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        color: var(--muted);
+        font-size: 13px;
+    }
+
+    .status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background: var(--success);
+        box-shadow: 0 0 12px rgba(53,212,154,0.8);
+    }
+
+    /* MAIN */
+
+    .main {
+        width: 100%;
+        max-width: 1240px;
+        margin: auto;
+        padding: 30px 6% 60px;
+
+        display: grid;
+        grid-template-columns: 1.05fr 0.95fr;
+        gap: 70px;
+        align-items: center;
+    }
+
+    /* LEFT SIDE */
+
+    .hero {
+        animation: fadeUp 0.7s ease;
+    }
+
+    .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+
+        padding: 8px 13px;
+        margin-bottom: 22px;
+
+        border: 1px solid rgba(126,164,255,0.25);
+        border-radius: 999px;
+
+        background: rgba(91,140,255,0.08);
+
+        color: #a9c0ff;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.5px;
+        text-transform: uppercase;
+    }
+
+    .hero h1 {
+        font-size: clamp(42px, 5vw, 72px);
+        line-height: 0.98;
+        letter-spacing: -3px;
+        margin-bottom: 25px;
+    }
+
+    .hero h1 .gradient {
+        background:
+            linear-gradient(
+                90deg,
+                #ffffff,
+                #83a7ff,
+                #a58bff
+            );
+
+        -webkit-background-clip: text;
+        background-clip: text;
+        color: transparent;
+    }
+
+    .hero-description {
+        max-width: 600px;
+
+        color: var(--muted);
+        font-size: 17px;
+        line-height: 1.8;
+
+        margin-bottom: 35px;
+    }
+
+    .security-features {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0,1fr));
+        gap: 13px;
+        max-width: 580px;
+    }
+
+    .feature {
+        padding: 16px;
+
+        border: 1px solid var(--border);
+        border-radius: 16px;
+
+        background: rgba(255,255,255,0.035);
+
+        transition:
+            transform 0.25s ease,
+            background 0.25s ease,
+            border-color 0.25s ease;
+    }
+
+    .feature:hover {
+        transform: translateY(-3px);
+        background: rgba(255,255,255,0.055);
+        border-color: rgba(126,164,255,0.25);
+    }
+
+    .feature-icon {
+        width: 34px;
+        height: 34px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+
+        border-radius: 10px;
+        background: rgba(91,140,255,0.12);
+
+        margin-bottom: 10px;
+    }
+
+    .feature strong {
+        display: block;
+        font-size: 14px;
+        margin-bottom: 4px;
+    }
+
+    .feature small {
+        color: var(--muted);
+        line-height: 1.5;
+    }
+
+    /* AUTH CARD */
+
+    .auth-wrapper {
+        animation: fadeUp 0.8s ease;
+    }
+
+    .auth-card {
+        width: 100%;
+        padding: 34px;
+
+        border: 1px solid var(--border);
+        border-radius: 28px;
+
+        background:
+            linear-gradient(
+                145deg,
+                rgba(19,35,58,0.90),
+                rgba(8,19,33,0.88)
+            );
+
+        backdrop-filter: blur(24px);
+
+        box-shadow:
+            0 30px 80px rgba(0,0,0,0.40),
+            inset 0 1px rgba(255,255,255,0.05);
+    }
+
+    .auth-header {
+        margin-bottom: 25px;
+    }
+
+    .auth-header h2 {
+        font-size: 27px;
+        margin-bottom: 8px;
+    }
+
+    .auth-header p {
+        color: var(--muted);
+        font-size: 14px;
+    }
+
+    /* TABS */
+
+    .tabs {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+
+        padding: 5px;
+        margin-bottom: 27px;
+
+        border-radius: 13px;
+        background: rgba(0,0,0,0.22);
+    }
+
+    .tab {
+        border: none;
+        padding: 12px;
+
+        border-radius: 9px;
+
+        background: transparent;
+        color: var(--muted);
+
+        font-weight: 700;
+        cursor: pointer;
+
+        transition: 0.2s ease;
+    }
+
+    .tab.active {
+        color: white;
+        background: rgba(255,255,255,0.09);
+        box-shadow: 0 4px 15px rgba(0,0,0,0.18);
+    }
+
+    /* FORMS */
+
+    .form {
+        display: none;
+    }
+
+    .form.active {
+        display: block;
+        animation: formIn 0.25s ease;
+    }
+
+    .field {
+        margin-bottom: 17px;
+    }
+
+    label {
+        display: block;
+        margin-bottom: 8px;
+
+        font-size: 13px;
+        font-weight: 700;
+        color: #d7e0ef;
+    }
+
+    .input-wrapper {
+        position: relative;
+    }
+
+    input {
+        width: 100%;
+
+        padding: 14px 15px;
+
+        border: 1px solid rgba(255,255,255,0.10);
+        border-radius: 12px;
+
+        background: rgba(2,8,17,0.48);
+
+        color: white;
+        outline: none;
+
+        font-size: 14px;
+
+        transition:
+            border-color 0.2s ease,
+            box-shadow 0.2s ease,
+            background 0.2s ease;
+    }
+
+    input::placeholder {
+        color: #60738d;
+    }
+
+    input:focus {
+        border-color: rgba(91,140,255,0.75);
+
+        background: rgba(2,8,17,0.70);
+
+        box-shadow:
+            0 0 0 4px rgba(91,140,255,0.10);
+    }
+
+    .password-toggle {
+        position: absolute;
+        right: 12px;
+        top: 50%;
+        transform: translateY(-50%);
+
+        border: none;
+        background: transparent;
+
+        color: #7890ad;
+        cursor: pointer;
+
+        font-size: 12px;
+        font-weight: 700;
+    }
+
+    .password-toggle:hover {
+        color: white;
+    }
+
+    /* PASSWORD STRENGTH */
+
+    .strength {
+        margin-top: 8px;
+    }
+
+    .strength-bars {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 5px;
+        margin-bottom: 6px;
+    }
+
+    .strength-bar {
+        height: 4px;
+        border-radius: 10px;
+        background: rgba(255,255,255,0.09);
+        transition: 0.2s ease;
+    }
+
+    .strength-text {
+        font-size: 11px;
+        color: var(--muted);
+    }
+
+    /* CAPTCHA */
+
+    .captcha-box {
+        display: grid;
+        grid-template-columns: auto 1fr;
+        gap: 10px;
+        align-items: center;
+    }
+
+    .captcha-question {
+        min-width: 112px;
+
+        padding: 13px 12px;
+
+        text-align: center;
+
+        border: 1px solid rgba(126,164,255,0.20);
+        border-radius: 11px;
+
+        background:
+            linear-gradient(
+                135deg,
+                rgba(91,140,255,0.10),
+                rgba(124,92,255,0.08)
+            );
+
+        color: #c7d7ff;
+        font-weight: 800;
+        letter-spacing: 0.5px;
+    }
+
+    /* BUTTON */
+
+    .button {
+        width: 100%;
+        padding: 15px;
+
+        border: none;
+        border-radius: 13px;
+
+        background:
+            linear-gradient(
+                135deg,
+                #527ff5,
+                #7658e9
+            );
+
+        color: white;
+
+        font-size: 14px;
+        font-weight: 800;
+
+        cursor: pointer;
+
+        box-shadow:
+            0 12px 30px rgba(91,140,255,0.22);
+
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease,
+            filter 0.2s ease;
+    }
+
+    .button:hover {
+        transform: translateY(-2px);
+
+        box-shadow:
+            0 17px 38px rgba(91,140,255,0.32);
+
+        filter: brightness(1.08);
+    }
+
+    .button:active {
+        transform: translateY(0);
+    }
+
+    /* SECURITY NOTE */
+
+    .security-note {
+        display: flex;
+        gap: 10px;
+        align-items: flex-start;
+
+        margin-top: 20px;
+        padding: 13px;
+
+        border: 1px solid rgba(53,212,154,0.14);
+        border-radius: 12px;
+
+        background: rgba(53,212,154,0.045);
+
+        color: #8da49f;
+        font-size: 11px;
+        line-height: 1.5;
+    }
+
+    .security-note strong {
+        color: #a9d9c9;
+    }
+
+    /* FLASH MESSAGE */
+
+    .messages {
+        margin-bottom: 18px;
+    }
+
+    .message {
+        padding: 12px 14px;
+        border-radius: 11px;
+        margin-bottom: 8px;
+
+        font-size: 13px;
+        font-weight: 600;
+    }
+
+    .message.success {
+        background: rgba(53,212,154,0.10);
+        border: 1px solid rgba(53,212,154,0.20);
+        color: #8ce5c6;
+    }
+
+    .message.error {
+        background: rgba(255,100,124,0.10);
+        border: 1px solid rgba(255,100,124,0.20);
+        color: #ff9aaa;
+    }
+
+    /* FOOTER */
+
+    .footer {
+        margin-top: auto;
+        padding: 25px 6%;
+
+        display: flex;
+        justify-content: center;
+
+        color: #566a84;
+        font-size: 11px;
+        text-align: center;
+    }
+
+    /* ANIMATION */
+
+    @keyframes fadeUp {
+        from {
+            opacity: 0;
+            transform: translateY(18px);
         }
 
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
 
-        html {
-            scroll-behavior: smooth;
+    @keyframes formIn {
+        from {
+            opacity: 0;
+            transform: translateY(5px);
         }
 
-
-        body {
-            font-family:
-                Inter,
-                Arial,
-                Helvetica,
-                sans-serif;
-
-            color: #e2e8f0;
-
-            background:
-                #020617;
-
-            line-height: 1.6;
+        to {
+            opacity: 1;
+            transform: translateY(0);
         }
+    }
 
+    /* RESPONSIVE */
 
-        a {
-            text-decoration: none;
-            color: inherit;
+    @media (max-width: 900px) {
+        .main {
+            grid-template-columns: 1fr;
+            gap: 40px;
+            max-width: 650px;
         }
-
-
-        /* =========================================
-           NAVIGATION
-        ========================================= */
-
-        .navbar {
-            position: fixed;
-            top: 0;
-            left: 0;
-
-            width: 100%;
-
-            z-index: 1000;
-
-            background:
-                rgba(2, 6, 23, 0.82);
-
-            backdrop-filter:
-                blur(18px);
-
-            border-bottom:
-                1px solid rgba(
-                    148,
-                    163,
-                    184,
-                    0.12
-                );
-        }
-
-
-        .nav-container {
-            max-width: 1200px;
-
-            margin: auto;
-
-            padding:
-                18px 28px;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: space-between;
-        }
-
-
-        .logo {
-            display: flex;
-
-            align-items: center;
-
-            gap: 11px;
-
-            font-size: 20px;
-
-            font-weight: 800;
-
-            letter-spacing: 0.5px;
-        }
-
-
-        .logo-icon {
-            width: 38px;
-            height: 38px;
-
-            border-radius: 11px;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #38bdf8,
-                    #6366f1
-                );
-
-            color: white;
-
-            font-size: 18px;
-        }
-
-
-        .logo span {
-            color: #38bdf8;
-        }
-
-
-        .nav-links {
-            display: flex;
-
-            gap: 30px;
-
-            align-items: center;
-        }
-
-
-        .nav-links a {
-            color: #94a3b8;
-
-            font-size: 14px;
-
-            transition: 0.2s;
-        }
-
-
-        .nav-links a:hover {
-            color: white;
-        }
-
-
-        .nav-login {
-            padding:
-                9px 18px;
-
-            border-radius: 10px;
-
-            background:
-                #2563eb;
-
-            color: white !important;
-
-            font-weight: 700;
-        }
-
-
-        /* =========================================
-           HERO
-        ========================================= */
 
         .hero {
-            min-height: 100vh;
-
-            padding:
-                150px 28px 80px;
-
-            display: flex;
-
-            align-items: center;
-
-            position: relative;
-
-            overflow: hidden;
+            text-align: center;
         }
 
-
-        .hero::before {
-            content: "";
-
-            position: absolute;
-
-            width: 600px;
-            height: 600px;
-
-            background:
-                rgba(
-                    37,
-                    99,
-                    235,
-                    0.18
-                );
-
-            border-radius: 50%;
-
-            filter: blur(120px);
-
-            top: 100px;
-            left: -200px;
+        .hero-description {
+            margin-left: auto;
+            margin-right: auto;
         }
 
-
-        .hero::after {
-            content: "";
-
-            position: absolute;
-
-            width: 500px;
-            height: 500px;
-
-            background:
-                rgba(
-                    56,
-                    189,
-                    248,
-                    0.12
-                );
-
-            border-radius: 50%;
-
-            filter: blur(120px);
-
-            right: -150px;
-            bottom: 50px;
-        }
-
-
-        .hero-container {
-            max-width: 1200px;
-
-            width: 100%;
-
+        .security-features {
             margin: auto;
+        }
+    }
 
-            display: grid;
-
-            grid-template-columns:
-                1.1fr
-                0.9fr;
-
-            gap: 70px;
-
-            align-items: center;
-
-            position: relative;
-
-            z-index: 2;
+    @media (max-width: 600px) {
+        .navbar {
+            padding: 18px 5%;
         }
 
+        .nav-status {
+            display: none;
+        }
 
-        .badge {
-            display: inline-flex;
-
-            align-items: center;
-
-            gap: 8px;
-
+        .main {
             padding:
-                7px 13px;
-
-            border:
-                1px solid
-                rgba(
-                    56,
-                    189,
-                    248,
-                    0.25
-                );
-
-            border-radius: 50px;
-
-            background:
-                rgba(
-                    56,
-                    189,
-                    248,
-                    0.08
-                );
-
-            color: #7dd3fc;
-
-            font-size: 12px;
-
-            font-weight: 700;
-
-            letter-spacing: 1px;
-
-            text-transform: uppercase;
-
-            margin-bottom: 22px;
+                20px 5% 40px;
         }
-
-
-        .badge-dot {
-            width: 7px;
-            height: 7px;
-
-            border-radius: 50%;
-
-            background:
-                #22c55e;
-
-            box-shadow:
-                0 0 10px
-                #22c55e;
-        }
-
 
         .hero h1 {
-            font-size:
-                clamp(
-                    45px,
-                    6vw,
-                    76px
-                );
-
-            line-height: 1.03;
-
-            letter-spacing:
-                -3px;
-
-            margin-bottom: 25px;
-
-            color: white;
+            font-size: 44px;
+            letter-spacing: -2px;
         }
 
-
-        .hero h1 span {
-            background:
-                linear-gradient(
-                    90deg,
-                    #38bdf8,
-                    #818cf8
-                );
-
-            -webkit-background-clip:
-                text;
-
-            -webkit-text-fill-color:
-                transparent;
-        }
-
-
-        .hero-text {
-            max-width: 650px;
-
-            color: #94a3b8;
-
-            font-size: 18px;
-
-            line-height: 1.8;
-
-            margin-bottom: 32px;
-        }
-
-
-        .hero-buttons {
-            display: flex;
-
-            gap: 14px;
-
-            flex-wrap: wrap;
-        }
-
-
-        .btn {
-            display: inline-flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            padding:
-                14px 24px;
-
-            border-radius: 12px;
-
+        .hero-description {
             font-size: 14px;
-
-            font-weight: 700;
-
-            transition:
-                0.2s;
-
-            cursor: pointer;
-
-            border: none;
+            line-height: 1.7;
         }
 
-
-        .btn-primary {
-            background:
-                #2563eb;
-
-            color: white;
-
-            box-shadow:
-                0 10px 30px
-                rgba(
-                    37,
-                    99,
-                    235,
-                    0.25
-                );
+        .security-features {
+            grid-template-columns: 1fr;
         }
 
-
-        .btn-primary:hover {
-            transform:
-                translateY(-2px);
-
-            background:
-                #3b82f6;
-        }
-
-
-        .btn-secondary {
-            background:
-                rgba(
-                    30,
-                    41,
-                    59,
-                    0.7
-                );
-
-            border:
-                1px solid
-                #334155;
-
-            color: #e2e8f0;
-        }
-
-
-        .btn-secondary:hover {
-            transform:
-                translateY(-2px);
-
-            border-color:
-                #64748b;
-        }
-
-
-        /* =========================================
-           SECURITY VISUAL
-        ========================================= */
-
-        .security-visual {
-            position: relative;
-
-            display: flex;
-
-            justify-content: center;
-
-            align-items: center;
-        }
-
-
-        .security-card {
-            width: 390px;
-
-            padding: 28px;
-
-            border-radius: 28px;
-
-            background:
-                rgba(
-                    15,
-                    23,
-                    42,
-                    0.88
-                );
-
-            border:
-                1px solid
-                rgba(
-                    148,
-                    163,
-                    184,
-                    0.18
-                );
-
-            box-shadow:
-                0 30px 80px
-                rgba(
-                    0,
-                    0,
-                    0,
-                    0.45
-                );
-
-            position: relative;
-        }
-
-
-        .security-header {
-            display: flex;
-
-            justify-content:
-                space-between;
-
-            align-items: center;
-
-            margin-bottom: 25px;
-        }
-
-
-        .security-title {
-            font-weight: 700;
-
-            font-size: 15px;
-        }
-
-
-        .online {
-            display: flex;
-
-            align-items: center;
-
-            gap: 7px;
-
-            color: #86efac;
-
-            font-size: 11px;
-        }
-
-
-        .online-dot {
-            width: 7px;
-            height: 7px;
-
-            border-radius: 50%;
-
-            background:
-                #22c55e;
-        }
-
-
-        .lock {
-            width: 105px;
-            height: 105px;
-
-            margin:
-                15px auto 25px;
-
-            border-radius: 30px;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            background:
-                linear-gradient(
-                    135deg,
-                    #1d4ed8,
-                    #7c3aed
-                );
-
-            box-shadow:
-                0 20px 50px
-                rgba(
-                    37,
-                    99,
-                    235,
-                    0.35
-                );
-
-            font-size: 48px;
-        }
-
-
-        .auth-layer {
-            display: flex;
-
-            align-items: center;
-
-            gap: 13px;
-
-            padding:
-                14px;
-
-            border-radius: 14px;
-
-            background:
-                rgba(
-                    30,
-                    41,
-                    59,
-                    0.75
-                );
-
-            margin-top: 9px;
-        }
-
-
-        .layer-number {
-            width: 28px;
-            height: 28px;
-
-            border-radius: 9px;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            background:
-                rgba(
-                    56,
-                    189,
-                    248,
-                    0.12
-                );
-
-            color: #38bdf8;
-
-            font-size: 12px;
-
-            font-weight: 800;
-        }
-
-
-        .layer-content strong {
-            display: block;
-
-            font-size: 13px;
-
-            color: #f8fafc;
-        }
-
-
-        .layer-content small {
-            color: #64748b;
-
-            font-size: 10px;
-        }
-
-
-        /* =========================================
-           SECTION
-        ========================================= */
-
-        section {
-            padding:
-                100px 28px;
-        }
-
-
-        .section-container {
-            max-width: 1200px;
-
-            margin: auto;
-        }
-
-
-        .section-heading {
-            text-align: center;
-
-            max-width: 700px;
-
-            margin:
-                0 auto 55px;
-        }
-
-
-        .section-heading .small-title {
-            color: #38bdf8;
-
-            text-transform:
-                uppercase;
-
-            font-size: 12px;
-
-            font-weight: 800;
-
-            letter-spacing: 2px;
-
-            margin-bottom: 12px;
-        }
-
-
-        .section-heading h2 {
-            font-size: 38px;
-
-            line-height: 1.2;
-
-            margin-bottom: 15px;
-
-            color: white;
-        }
-
-
-        .section-heading p {
-            color: #64748b;
-
-            font-size: 15px;
-        }
-
-
-        /* =========================================
-           FEATURES
-        ========================================= */
-
-        .features {
-            background:
-                #030712;
-        }
-
-
-        .feature-grid {
-            display: grid;
-
-            grid-template-columns:
-                repeat(
-                    3,
-                    1fr
-                );
-
-            gap: 20px;
-        }
-
-
-        .feature-card {
-            padding: 28px;
-
-            border-radius: 20px;
-
-            background:
-                #0f172a;
-
-            border:
-                1px solid
-                #1e293b;
-
-            transition:
-                0.25s;
-        }
-
-
-        .feature-card:hover {
-            transform:
-                translateY(-5px);
-
-            border-color:
-                #334155;
-        }
-
-
-        .feature-icon {
-            width: 48px;
-            height: 48px;
-
-            border-radius: 14px;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            background:
-                rgba(
-                    56,
-                    189,
-                    248,
-                    0.1
-                );
-
-            color: #38bdf8;
-
-            font-size: 22px;
-
-            margin-bottom: 20px;
-        }
-
-
-        .feature-card h3 {
-            font-size: 17px;
-
-            margin-bottom: 9px;
-
-            color: white;
-        }
-
-
-        .feature-card p {
-            color: #64748b;
-
-            font-size: 13px;
-
-            line-height: 1.8;
-        }
-
-
-        /* =========================================
-           HOW IT WORKS
-        ========================================= */
-
-        .steps {
-            display: grid;
-
-            grid-template-columns:
-                repeat(
-                    4,
-                    1fr
-                );
-
-            gap: 20px;
-        }
-
-
-        .step {
-            text-align: center;
-
-            padding: 25px;
-        }
-
-
-        .step-number {
-            width: 55px;
-            height: 55px;
-
-            margin:
-                0 auto 20px;
-
-            border-radius: 18px;
-
-            display: flex;
-
-            align-items: center;
-            justify-content: center;
-
-            background:
-                #1e3a8a;
-
-            color: #7dd3fc;
-
-            font-weight: 800;
-
-            font-size: 18px;
-        }
-
-
-        .step h3 {
-            font-size: 16px;
-
-            margin-bottom: 9px;
-
-            color: white;
-        }
-
-
-        .step p {
-            color: #64748b;
-
-            font-size: 13px;
-        }
-
-
-        /* =========================================
-           SECURITY SECTION
-        ========================================= */
-
-        .security-section {
-            background:
-                #030712;
-        }
-
-
-        .security-grid {
-            display: grid;
-
-            grid-template-columns:
-                1fr
-                1fr;
-
-            gap: 25px;
-        }
-
-
-        .security-panel {
-            padding: 30px;
-
+        .auth-card {
+            padding: 24px 20px;
             border-radius: 22px;
-
-            background:
-                #0f172a;
-
-            border:
-                1px solid
-                #1e293b;
         }
 
-
-        .security-panel h3 {
-            color: white;
-
-            margin-bottom: 20px;
-
-            font-size: 19px;
+        .captcha-box {
+            grid-template-columns: 1fr;
         }
 
-
-        .security-item {
-            display: flex;
-
-            align-items: flex-start;
-
-            gap: 13px;
-
-            margin-bottom: 18px;
-        }
-
-
-        .check {
-            color: #22c55e;
-
-            font-weight: bold;
-
-            margin-top: 2px;
-        }
-
-
-        .security-item strong {
-            display: block;
-
-            color: #cbd5e1;
-
-            font-size: 14px;
-        }
-
-
-        .security-item span {
-            color: #64748b;
-
-            font-size: 12px;
-        }
-
-
-        /* =========================================
-           FOOTER
-        ========================================= */
-
-        footer {
-            border-top:
-                1px solid
-                #1e293b;
-
-            padding:
-                35px 28px;
-
-            background:
-                #020617;
-        }
-
-
-        .footer-container {
-            max-width: 1200px;
-
-            margin: auto;
-
-            display: flex;
-
-            justify-content:
-                space-between;
-
-            align-items: center;
-
-            gap: 20px;
-        }
-
-
-        .footer-text {
-            color: #475569;
-
-            font-size: 12px;
-        }
-
-
-        .footer-brand {
-            color: #38bdf8;
-
-            font-weight: 800;
-        }
-
-
-        /* =========================================
-           FLASH MESSAGE
-        ========================================= */
-
-        .flash-container {
-            position: fixed;
-
-            top: 85px;
-
-            right: 25px;
-
-            z-index: 2000;
-
-            width: 330px;
-        }
-
-
-        .flash {
-            padding:
-                15px 18px;
-
-            border-radius: 12px;
-
-            margin-bottom: 10px;
-
-            font-size: 13px;
-
-            box-shadow:
-                0 15px 40px
-                rgba(
-                    0,
-                    0,
-                    0,
-                    0.3
-                );
-        }
-
-
-        .flash.success {
-            background:
-                #064e3b;
-
-            border:
-                1px solid
-                #059669;
-
-            color: #a7f3d0;
-        }
-
-
-        .flash.error {
-            background:
-                #450a0a;
-
-            border:
-                1px solid
-                #dc2626;
-
-            color: #fecaca;
-        }
-
-
-        /* =========================================
-           AUTH MODAL
-        ========================================= */
-
-        .modal {
-            display: none;
-
-            position: fixed;
-
-            inset: 0;
-
-            z-index: 1500;
-
-            background:
-                rgba(
-                    2,
-                    6,
-                    23,
-                    0.82
-                );
-
-            backdrop-filter:
-                blur(8px);
-
-            align-items: center;
-
-            justify-content: center;
-
-            padding: 20px;
-        }
-
-
-        .modal.active {
-            display: flex;
-        }
-
-
-        .modal-box {
+        .captcha-question {
             width: 100%;
-
-            max-width: 440px;
-
-            padding: 32px;
-
-            border-radius: 22px;
-
-            background:
-                #0f172a;
-
-            border:
-                1px solid
-                #334155;
-
-            box-shadow:
-                0 30px 100px
-                rgba(
-                    0,
-                    0,
-                    0,
-                    0.55
-                );
-
-            position: relative;
         }
-
-
-        .close {
-            position: absolute;
-
-            top: 15px;
-
-            right: 18px;
-
-            background: none;
-
-            border: none;
-
-            color: #64748b;
-
-            font-size: 24px;
-
-            cursor: pointer;
-        }
-
-
-        .modal-box h2 {
-            color: white;
-
-            margin-bottom: 8px;
-        }
-
-
-        .modal-box > p {
-            color: #64748b;
-
-            font-size: 13px;
-
-            margin-bottom: 25px;
-        }
-
-
-        .form-group {
-            margin-bottom: 16px;
-        }
-
-
-        .form-group label {
-            display: block;
-
-            margin-bottom: 7px;
-
-            color: #cbd5e1;
-
-            font-size: 12px;
-
-            font-weight: 600;
-        }
-
-
-        .form-group input {
-            width: 100%;
-
-            padding:
-                13px 14px;
-
-            border-radius: 10px;
-
-            border:
-                1px solid
-                #334155;
-
-            background:
-                #020617;
-
-            color: white;
-
-            outline: none;
-
-            font-size: 14px;
-        }
-
-
-        .form-group input:focus {
-            border-color:
-                #38bdf8;
-        }
-
-
-        .captcha {
-            padding:
-                12px;
-
-            border-radius: 10px;
-
-            background:
-                #020617;
-
-            border:
-                1px solid
-                #1e293b;
-
-            color: #38bdf8;
-
-            text-align: center;
-
-            margin-bottom: 10px;
-
-            font-weight: 800;
-
-            letter-spacing: 1px;
-        }
-
-
-        .modal-submit {
-            width: 100%;
-
-            margin-top: 8px;
-        }
-
-
-        .switch {
-            text-align: center;
-
-            margin-top: 18px;
-
-            color: #64748b;
-
-            font-size: 12px;
-        }
-
-
-        .switch button {
-            background: none;
-
-            border: none;
-
-            color: #38bdf8;
-
-            cursor: pointer;
-
-            font-weight: 700;
-        }
-
-
-        .color-options {
-            display: grid;
-
-            grid-template-columns:
-                repeat(
-                    4,
-                    1fr
-                );
-
-            gap: 8px;
-        }
-
-
-        .color-option {
-            position: relative;
-        }
-
-
-        .color-option input {
-            display: none;
-        }
-
-
-        .color-option label {
-            height: 42px;
-
-            border-radius: 10px;
-
-            cursor: pointer;
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            font-size: 10px;
-
-            text-transform:
-                uppercase;
-
-            font-weight: 700;
-
-            color: white;
-
-            border:
-                2px solid
-                transparent;
-        }
-
-
-        .color-option input:checked + label {
-            border-color:
-                white;
-
-            box-shadow:
-                0 0 0 2px
-                #38bdf8;
-        }
-
-
-        .red {
-            background: #dc2626;
-        }
-
-        .blue {
-            background: #2563eb;
-        }
-
-        .green {
-            background: #16a34a;
-        }
-
-        .yellow {
-            background: #ca8a04;
-        }
-
-        .purple {
-            background: #9333ea;
-        }
-
-        .orange {
-            background: #ea580c;
-        }
-
-        .pink {
-            background: #db2777;
-        }
-
-        .cyan {
-            background: #0891b2;
-        }
-
-
-        /* =========================================
-           RESPONSIVE
-        ========================================= */
-
-        @media (max-width: 900px) {
-
-            .hero-container {
-                grid-template-columns: 1fr;
-
-                text-align: center;
-            }
-
-
-            .hero-text {
-                margin-left: auto;
-                margin-right: auto;
-            }
-
-
-            .hero-buttons {
-                justify-content: center;
-            }
-
-
-            .security-visual {
-                margin-top: 20px;
-            }
-
-
-            .feature-grid {
-                grid-template-columns:
-                    1fr 1fr;
-            }
-
-
-            .steps {
-                grid-template-columns:
-                    1fr 1fr;
-            }
-
-
-            .security-grid {
-                grid-template-columns:
-                    1fr;
-            }
-
-        }
-
-
-        @media (max-width: 600px) {
-
-            .nav-links a:not(
-                .nav-login
-            ) {
-                display: none;
-            }
-
-
-            .hero {
-                padding-top: 120px;
-            }
-
-
-            .hero h1 {
-                letter-spacing:
-                    -1.5px;
-            }
-
-
-            .security-card {
-                width: 100%;
-            }
-
-
-            .feature-grid,
-            .steps {
-                grid-template-columns:
-                    1fr;
-            }
-
-
-            .footer-container {
-                flex-direction:
-                    column;
-
-                text-align: center;
-            }
-
-        }
-
-    </style>
+    }
+</style>
+```
 
 </head>
 
-
 <body>
 
+<div class="page">
 
-<!-- ==========================================
-     NAVIGATION
-========================================== -->
-
+```
+<!-- NAVIGATION -->
 <nav class="navbar">
 
-    <div class="nav-container">
+    <div class="brand">
+        <div class="brand-icon">SG</div>
 
-        <a href="#home"
-           class="logo">
-
-            <div class="logo-icon">
-                🔐
-            </div>
-
+        <div class="brand-text">
             Secure<span>Graphical</span>
-
-        </a>
-
-
-        <div class="nav-links">
-
-            <a href="#features">
-                Features
-            </a>
-
-            <a href="#how">
-                How It Works
-            </a>
-
-            <a href="#security">
-                Security
-            </a>
-
-            <a href="#login"
-               class="nav-login"
-               onclick="openLogin(event)">
-                Login
-            </a>
-
         </div>
+    </div>
 
+    <div class="nav-status">
+        <div class="status-dot"></div>
+        Authentication system online
     </div>
 
 </nav>
 
 
-<!-- ==========================================
-     FLASH MESSAGES
-========================================== -->
+<!-- MAIN CONTENT -->
+<main class="main">
 
-{% with messages =
-    get_flashed_messages(
-        with_categories=true
-    )
-%}
+    <!-- LEFT -->
+    <section class="hero">
 
-    {% if messages %}
-
-        <div class="flash-container">
-
-            {% for category, message in messages %}
-
-                <div class="flash {{ category }}">
-
-                    {{ message }}
-
-                </div>
-
-            {% endfor %}
-
+        <div class="badge">
+            🛡 Multi-Layer Authentication
         </div>
 
-    {% endif %}
-
-{% endwith %}
-
-
-<!-- ==========================================
-     HERO
-========================================== -->
-
-<section
-    class="hero"
-    id="home"
->
-
-    <div class="hero-container">
-
-
-        <div>
-
-            <div class="badge">
-
-                <span class="badge-dot"></span>
-
-                Multi-Layer Authentication
-
-            </div>
-
-
-            <h1>
-
-                Security Beyond
-                <span>Password.</span>
-
-            </h1>
-
-
-            <p class="hero-text">
-
-                SecureGraphical is a colour-based
-                textual graphical password
-                authentication system designed to
-                improve resistance against
-                shoulder surfing while maintaining
-                a simple and efficient user experience.
-
-            </p>
-
-
-            <div class="hero-buttons">
-
-                <button
-                    class="btn btn-primary"
-                    onclick="openRegister(event)"
-                >
-                    Create Account
-                </button>
-
-
-                <button
-                    class="btn btn-secondary"
-                    onclick="openLogin(event)"
-                >
-                    Sign In
-                </button>
-
-            </div>
-
-        </div>
-
-
-        <!-- SECURITY VISUAL -->
-
-        <div class="security-visual">
-
-            <div class="security-card">
-
-
-                <div class="security-header">
-
-                    <div class="security-title">
-                        Authentication Status
-                    </div>
-
-                    <div class="online">
-
-                        <span class="online-dot"></span>
-
-                        SYSTEM SECURE
-
-                    </div>
-
-                </div>
-
-
-                <div class="lock">
-                    🔐
-                </div>
-
-
-                <div class="auth-layer">
-
-                    <div class="layer-number">
-                        01
-                    </div>
-
-                    <div class="layer-content">
-
-                        <strong>
-                            Text Password
-                        </strong>
-
-                        <small>
-                            Hashed credential verification
-                        </small>
-
-                    </div>
-
-                </div>
-
-
-                <div class="auth-layer">
-
-                    <div class="layer-number">
-                        02
-                    </div>
-
-                    <div class="layer-content">
-
-                        <strong>
-                            CAPTCHA
-                        </strong>
-
-                        <small>
-                            Human verification
-                        </small>
-
-                    </div>
-
-                </div>
-
-
-                <div class="auth-layer">
-
-                    <div class="layer-number">
-                        03
-                    </div>
-
-                    <div class="layer-content">
-
-                        <strong>
-                            Graphical Password
-                        </strong>
-
-                        <small>
-                            Colour-based authentication
-                        </small>
-
-                    </div>
-
-                </div>
-
-
-            </div>
-
-        </div>
-
-    </div>
-
-</section>
-
-
-<!-- ==========================================
-     FEATURES
-========================================== -->
-
-<section
-    class="features"
-    id="features"
->
-
-    <div class="section-container">
-
-
-        <div class="section-heading">
-
-            <div class="small-title">
-                Core Features
-            </div>
-
-            <h2>
-                Designed for stronger authentication
-            </h2>
-
-            <p>
-                SecureGraphical combines multiple
-                authentication mechanisms into one
-                streamlined system.
-            </p>
-
-        </div>
-
-
-        <div class="feature-grid">
-
-
-            <div class="feature-card">
-
-                <div class="feature-icon">
-                    🔐
-                </div>
-
-                <h3>
-                    Text Password
-                </h3>
-
-                <p>
-                    User credentials are protected
-                    using secure password hashing
-                    instead of storing passwords
-                    in plain text.
-                </p>
-
-            </div>
-
-
-            <div class="feature-card">
-
-                <div class="feature-icon">
-                    🎨
-                </div>
-
-                <h3>
-                    Colour Authentication
-                </h3>
-
-                <p>
-                    Eight colour sectors are used
-                    as pass-colour and decoy-colour
-                    authentication elements.
-                </p>
-
-            </div>
-
-
-            <div class="feature-card">
-
-                <div class="feature-icon">
-                    🔄
-                </div>
-
-                <h3>
-                    Randomised Interface
-                </h3>
-
-                <p>
-                    Characters and colour positions
-                    are randomised to make direct
-                    observation more difficult.
-                </p>
-
-            </div>
-
-
-            <div class="feature-card">
-
-                <div class="feature-icon">
-                    🛡️
-                </div>
-
-                <h3>
-                    Shoulder Surfing Resistance
-                </h3>
-
-                <p>
-                    The graphical authentication
-                    mechanism reduces the usefulness
-                    of simply observing user input.
-                </p>
-
-            </div>
-
-
-            <div class="feature-card">
-
-                <div class="feature-icon">
-                    🧩
-                </div>
-
-                <h3>
-                    Multi-Layer Protection
-                </h3>
-
-                <p>
-                    Login requires multiple
-                    authentication stages instead
-                    of relying on a single password.
-                </p>
-
-            </div>
-
-
-            <div class="feature-card">
-
-                <div class="feature-icon">
-                    ⚡
-                </div>
-
-                <h3>
-                    Simple User Experience
-                </h3>
-
-                <p>
-                    The system combines stronger
-                    security with an intuitive
-                    graphical interface.
-                </p>
-
-            </div>
-
-
-        </div>
-
-    </div>
-
-</section>
-
-
-<!-- ==========================================
-     HOW IT WORKS
-========================================== -->
-
-<section id="how">
-
-    <div class="section-container">
-
-
-        <div class="section-heading">
-
-            <div class="small-title">
-                Authentication Process
-            </div>
-
-            <h2>
-                How SecureGraphical works
-            </h2>
-
-            <p>
-                Four stages protect the user's account.
-            </p>
-
-        </div>
-
-
-        <div class="steps">
-
-
-            <div class="step">
-
-                <div class="step-number">
-                    01
-                </div>
-
-                <h3>
-                    Register
-                </h3>
-
-                <p>
-                    Create an account using an email,
-                    text password and pass-colour.
-                </p>
-
-            </div>
-
-
-            <div class="step">
-
-                <div class="step-number">
-                    02
-                </div>
-
-                <h3>
-                    Verify
-                </h3>
-
-                <p>
-                    Complete CAPTCHA and
-                    conventional password verification.
-                </p>
-
-            </div>
-
-
-            <div class="step">
-
-                <div class="step-number">
-                    03
-                </div>
-
-                <h3>
-                    Authenticate
-                </h3>
-
-                <p>
-                    Use the colour-based graphical
-                    password mechanism.
-                </p>
-
-            </div>
-
-
-            <div class="step">
-
-                <div class="step-number">
-                    04
-                </div>
-
-                <h3>
-                    Access
-                </h3>
-
-                <p>
-                    Successful authentication
-                    provides access to the dashboard.
-                </p>
-
-            </div>
-
-
-        </div>
-
-    </div>
-
-</section>
-
-
-<!-- ==========================================
-     SECURITY
-========================================== -->
-
-<section
-    class="security-section"
-    id="security"
->
-
-    <div class="section-container">
-
-
-        <div class="section-heading">
-
-            <div class="small-title">
-                Security Design
-            </div>
-
-            <h2>
-                Built around layered protection
-            </h2>
-
-            <p>
-                Security is applied at multiple stages
-                of the authentication process.
-            </p>
-
-        </div>
-
-
-        <div class="security-grid">
-
-
-            <div class="security-panel">
-
-                <h3>
-                    Protection Mechanisms
-                </h3>
-
-
-                <div class="security-item">
-
-                    <div class="check">
-                        ✓
-                    </div>
-
-                    <div>
-
-                        <strong>
-                            Password Hashing
-                        </strong>
-
-                        <span>
-                            Text passwords are stored
-                            as cryptographic hashes.
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="security-item">
-
-                    <div class="check">
-                        ✓
-                    </div>
-
-                    <div>
-
-                        <strong>
-                            CAPTCHA Verification
-                        </strong>
-
-                        <span>
-                            Helps distinguish legitimate
-                            users from automated requests.
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="security-item">
-
-                    <div class="check">
-                        ✓
-                    </div>
-
-                    <div>
-
-                        <strong>
-                            Randomised Characters
-                        </strong>
-
-                        <span>
-                            The 16-character alphabet is
-                            randomly distributed.
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-            </div>
-
-
-            <div class="security-panel">
-
-                <h3>
-                    Shoulder Surfing Defence
-                </h3>
-
-
-                <div class="security-item">
-
-                    <div class="check">
-                        ✓
-                    </div>
-
-                    <div>
-
-                        <strong>
-                            Eight Colour Sectors
-                        </strong>
-
-                        <span>
-                            One pass-colour is selected
-                            while the remaining colours
-                            act as decoys.
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="security-item">
-
-                    <div class="check">
-                        ✓
-                    </div>
-
-                    <div>
-
-                        <strong>
-                            Rotation Mechanism
-                        </strong>
-
-                        <span>
-                            Characters can be rotated
-                            clockwise or anti-clockwise.
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-                <div class="security-item">
-
-                    <div class="check">
-                        ✓
-                    </div>
-
-                    <div>
-
-                        <strong>
-                            Multi-Factor Authentication
-                        </strong>
-
-                        <span>
-                            Multiple authentication layers
-                            increase the difficulty of
-                            unauthorised access.
-                        </span>
-
-                    </div>
-
-                </div>
-
-
-            </div>
-
-
-        </div>
-
-    </div>
-
-</section>
-
-
-<!-- ==========================================
-     FOOTER
-========================================== -->
-
-<footer>
-
-    <div class="footer-container">
-
-        <div class="footer-text">
-
-            © 2026
-            <span class="footer-brand">
-                SecureGraphical
+        <h1>
+            Passwords,
+            <br>
+            <span class="gradient">
+                Reimagined.
             </span>
+        </h1>
 
-            — Colour-Based Graphical
-            Password Authentication System.
+        <p class="hero-description">
+            SecureGraphical is a graphical password authentication
+            system designed to strengthen login security and reduce
+            the risk of password exposure through shoulder surfing.
+        </p>
+
+
+        <div class="security-features">
+
+            <div class="feature">
+                <div class="feature-icon">🔐</div>
+
+                <strong>Text Password</strong>
+
+                <small>
+                    Password credentials are securely hashed
+                    before storage.
+                </small>
+            </div>
+
+
+            <div class="feature">
+                <div class="feature-icon">🎨</div>
+
+                <strong>Graphical Password</strong>
+
+                <small>
+                    Users authenticate using a personalised
+                    graphical selection sequence.
+                </small>
+            </div>
+
+
+            <div class="feature">
+                <div class="feature-icon">🛡️</div>
+
+                <strong>Shoulder-Surfing Resistance</strong>
+
+                <small>
+                    The graphical authentication layer adds
+                    another obstacle to visual observation attacks.
+                </small>
+            </div>
+
+
+            <div class="feature">
+                <div class="feature-icon">⚡</div>
+
+                <strong>Efficient Authentication</strong>
+
+                <small>
+                    A simple interface keeps multi-layer
+                    authentication practical for users.
+                </small>
+            </div>
 
         </div>
 
+    </section>
 
-        <div class="footer-text">
 
-            Security • Usability • Innovation
+    <!-- RIGHT AUTHENTICATION -->
+    <section class="auth-wrapper">
+
+        <div class="auth-card">
+
+            <div class="auth-header">
+
+                <h2 id="authTitle">
+                    Welcome back
+                </h2>
+
+                <p id="authDescription">
+                    Sign in to access your secure account.
+                </p>
+
+            </div>
+
+
+            <!-- FLASH MESSAGES -->
+            <div class="messages">
+
+                {% with messages =
+                get_flashed_messages(with_categories=true) %}
+
+                    {% if messages %}
+
+                        {% for category, message in messages %}
+
+                            <div class="message {{ category }}">
+                                {{ message }}
+                            </div>
+
+                        {% endfor %}
+
+                    {% endif %}
+
+                {% endwith %}
+
+            </div>
+
+
+            <!-- TABS -->
+            <div class="tabs">
+
+                <button
+                    class="tab active"
+                    id="loginTab"
+                    type="button"
+                    onclick="showLogin()">
+
+                    Login
+
+                </button>
+
+
+                <button
+                    class="tab"
+                    id="registerTab"
+                    type="button"
+                    onclick="showRegister()">
+
+                    Register
+
+                </button>
+
+            </div>
+
+
+            <!-- LOGIN FORM -->
+            <div
+                id="loginForm"
+                class="form active">
+
+                <form
+                    method="POST"
+                    action="{{ url_for('login') }}">
+
+                    <div class="field">
+
+                        <label for="loginEmail">
+                            Email Address
+                        </label>
+
+                        <input
+                            id="loginEmail"
+                            type="email"
+                            name="email"
+                            placeholder="you@example.com"
+                            autocomplete="email"
+                            required>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="loginPassword">
+                            Password
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <input
+                                id="loginPassword"
+                                type="password"
+                                name="password"
+                                placeholder="Enter your password"
+                                autocomplete="current-password"
+                                required>
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                onclick="togglePassword('loginPassword', this)">
+
+                                SHOW
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label>
+                            Security Verification
+                        </label>
+
+                        <div class="captcha-box">
+
+                            <div class="captcha-question">
+
+                                {{ session.get(
+                                    'captcha_question',
+                                    '1 + 1 = ?'
+                                ) }}
+
+                            </div>
+
+                            <input
+                                type="text"
+                                name="captcha"
+                                inputmode="numeric"
+                                placeholder="Enter answer"
+                                autocomplete="off"
+                                required>
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="button">
+
+                        Continue Secure Login →
+
+                    </button>
+
+                </form>
+
+            </div>
+
+
+            <!-- REGISTER FORM -->
+            <div
+                id="registerForm"
+                class="form">
+
+                <form
+                    method="POST"
+                    action="{{ url_for('register') }}">
+
+                    <div class="field">
+
+                        <label for="name">
+                            Full Name
+                        </label>
+
+                        <input
+                            id="name"
+                            type="text"
+                            name="name"
+                            placeholder="Enter your full name"
+                            autocomplete="name"
+                            required>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="registerEmail">
+                            Email Address
+                        </label>
+
+                        <input
+                            id="registerEmail"
+                            type="email"
+                            name="email"
+                            placeholder="you@example.com"
+                            autocomplete="email"
+                            required>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="password">
+                            Password
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <input
+                                id="password"
+                                type="password"
+                                name="password"
+                                placeholder="Create your password"
+                                autocomplete="new-password"
+                                minlength="6"
+                                required
+                                oninput="checkPassword()">
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                onclick="togglePassword('password', this)">
+
+                                SHOW
+
+                            </button>
+
+                        </div>
+
+
+                        <div class="strength">
+
+                            <div class="strength-bars">
+
+                                <div
+                                    id="bar1"
+                                    class="strength-bar">
+                                </div>
+
+                                <div
+                                    id="bar2"
+                                    class="strength-bar">
+                                </div>
+
+                                <div
+                                    id="bar3"
+                                    class="strength-bar">
+                                </div>
+
+                                <div
+                                    id="bar4"
+                                    class="strength-bar">
+                                </div>
+
+                            </div>
+
+                            <div
+                                id="strengthText"
+                                class="strength-text">
+
+                                Minimum 6 characters
+
+                            </div>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label for="confirmPassword">
+                            Confirm Password
+                        </label>
+
+                        <div class="input-wrapper">
+
+                            <input
+                                id="confirmPassword"
+                                type="password"
+                                name="confirm_password"
+                                placeholder="Re-enter your password"
+                                autocomplete="new-password"
+                                required
+                                oninput="checkPassword()">
+
+                            <button
+                                type="button"
+                                class="password-toggle"
+                                onclick="togglePassword('confirmPassword', this)">
+
+                                SHOW
+
+                            </button>
+
+                        </div>
+
+                    </div>
+
+
+                    <div class="field">
+
+                        <label>
+                            Security Verification
+                        </label>
+
+                        <div class="captcha-box">
+
+                            <div class="captcha-question">
+
+                                {{ session.get(
+                                    'captcha_question',
+                                    '1 + 1 = ?'
+                                ) }}
+
+                            </div>
+
+                            <input
+                                type="text"
+                                name="captcha"
+                                inputmode="numeric"
+                                placeholder="Enter answer"
+                                autocomplete="off"
+                                required>
+
+                        </div>
+
+                    </div>
+
+
+                    <button
+                        type="submit"
+                        class="button">
+
+                        Continue to Graphical Setup →
+
+                    </button>
+
+                </form>
+
+            </div>
+
+
+            <!-- SECURITY INFORMATION -->
+            <div class="security-note">
+
+                <div>🔒</div>
+
+                <div>
+                    <strong>Protected authentication flow</strong><br>
+
+                    Your account uses multiple authentication
+                    layers. The graphical password is configured
+                    separately and required during the login process.
+                </div>
+
+            </div>
 
         </div>
 
-    </div>
+    </section>
+
+</main>
+
+
+<!-- FOOTER -->
+<footer class="footer">
+
+    SecureGraphical • Graphical Password Authentication System
+    <br>
+    Designed to improve authentication security and usability.
 
 </footer>
-
-
-<!-- ==========================================
-     LOGIN MODAL
-========================================== -->
-
-<div
-    class="modal"
-    id="loginModal"
->
-
-    <div class="modal-box">
-
-        <button
-            class="close"
-            onclick="closeModal('loginModal')"
-        >
-            ×
-        </button>
-
-
-        <h2>
-            Welcome Back
-        </h2>
-
-        <p>
-            Sign in to continue to SecureGraphical.
-        </p>
-
-
-        <form
-            method="POST"
-            action="/login"
-        >
-
-            <div class="form-group">
-
-                <label>
-                    Email Address
-                </label>
-
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="you@example.com"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>
-                    Password
-                </label>
-
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="Enter your password"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>
-                    Security Verification
-                </label>
-
-                <div class="captcha">
-
-                    {{ captcha }}
-
-                </div>
-
-                <input
-                    type="text"
-                    name="captcha"
-                    placeholder="Enter the answer"
-                    required
-                >
-
-            </div>
-
-
-            <button
-                type="submit"
-                class="btn btn-primary modal-submit"
-            >
-                Continue Secure Login
-            </button>
-
-        </form>
-
-
-        <div class="switch">
-
-            Don't have an account?
-
-            <button
-                onclick="switchToRegister()"
-            >
-                Create one
-            </button>
-
-        </div>
-
-    </div>
+```
 
 </div>
-
-
-<!-- ==========================================
-     REGISTER MODAL
-========================================== -->
-
-<div
-    class="modal"
-    id="registerModal"
->
-
-    <div class="modal-box">
-
-        <button
-            class="close"
-            onclick="closeModal('registerModal')"
-        >
-            ×
-        </button>
-
-
-        <h2>
-            Create Account
-        </h2>
-
-        <p>
-            Set up your secure authentication profile.
-        </p>
-
-
-        <form
-            method="POST"
-            action="/register"
-        >
-
-
-            <div class="form-group">
-
-                <label>
-                    Full Name
-                </label>
-
-                <input
-                    type="text"
-                    name="name"
-                    placeholder="Your name"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>
-                    Email Address
-                </label>
-
-                <input
-                    type="email"
-                    name="email"
-                    placeholder="you@example.com"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>
-                    Text Password
-                </label>
-
-                <input
-                    type="password"
-                    name="password"
-                    placeholder="4–8 characters: a-h and 1-8"
-                    minlength="4"
-                    maxlength="8"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>
-                    Confirm Password
-                </label>
-
-                <input
-                    type="password"
-                    name="confirm_password"
-                    placeholder="Repeat your password"
-                    minlength="4"
-                    maxlength="8"
-                    required
-                >
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>
-                    Choose Your Pass-Color
-                </label>
-
-                <div class="color-options">
-
-
-                    <div class="color-option">
-
-                        <input
-                            type="radio"
-                            name="pass_color"
-                            id="red"
-                            value="red"
-                            required
-                        >
-
-                        <label
-                            for="red"
-                            class="red"
-                        >
-                            Red
-                        </label>
-
-                    </div>
-
-
-                    <div class="color-option">
-
-                        <input
-                            type="radio"
-                            name="pass_color"
-                            id="blue"
-                            value="blue"
-                        >
-
-                        <label
-                            for="blue"
-                            class="blue"
-                        >
-                            Blue
-                        </label>
-
-                    </div>
-
-
-                    <div class="color-option">
-
-                        <input
-                            type="radio"
-                            name="pass_color"
-                            id="green"
-                            value="green"
-                        >
-
-                        <label
-                            for="green"
-                            class="green"
-                        >
-                            Green
-                        </label>
-
-                    </div>
-
-
-                    <div class="color-option">
-
-                        <input
-                            type="radio"
-                            name="pass_color"
-                            id="yellow"
-                            value="yellow"
-                        >
-
-                        <label
-                            for="yellow"
-                            class="yellow"
-                        >
-                            Yellow
-                        </label>
-
-                    </div>
-
-
-                    <div class="color-option">
-
-                        <input
-                            type="radio"
-                            name="pass_color"
-                            id="purple"
-                            value="purple"
-                        >
-
-                        <label
-                            for="purple"
-                            class="purple"
-                        >
-                            Purple
-                        </label>
-
-                    </div>
-
-
-                    <div class="color-option">
-
-                        <input
-                            type="radio"
-                            name="pass_color"
-                            id="orange"
-                            value="orange"
-                        >
-
-                        <label
-                            for="orange"
-                            class="orange"
-                        >
-                            Orange
-                        </label>
-
-                    </div>
-
-
-                    <div class="color-option">
-
-                        <input
-                            type="radio"
-                            name="pass_color"
-                            id="pink"
-                            value="pink"
-                        >
-
-                        <label
-                            for="pink"
-                            class="pink"
-                        >
-                            Pink
-                        </label>
-
-                    </div>
-
-
-                    <div class="color-option">
-
-                        <input
-                            type="radio"
-                            name="pass_color"
-                            id="cyan"
-                            value="cyan"
-                        >
-
-                        <label
-                            for="cyan"
-                            class="cyan"
-                        >
-                            Cyan
-                        </label>
-
-                    </div>
-
-
-                </div>
-
-            </div>
-
-
-            <div class="form-group">
-
-                <label>
-                    CAPTCHA
-                </label>
-
-                <div class="captcha">
-
-                    {{ captcha }}
-
-                </div>
-
-                <input
-                    type="text"
-                    name="captcha"
-                    placeholder="Enter the answer"
-                    required
-                >
-
-            </div>
-
-
-            <button
-                type="submit"
-                class="btn btn-primary modal-submit"
-            >
-                Continue Registration
-            </button>
-
-
-        </form>
-
-
-        <div class="switch">
-
-            Already have an account?
-
-            <button
-                onclick="switchToLogin()"
-            >
-                Sign in
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- ==========================================
-     JAVASCRIPT
-========================================== -->
 
 <script>
 
+    /* ================================
+       TAB SWITCHING
+    ================================= */
 
-function openLogin(event) {
+    function showLogin() {
 
-    if (event) {
-        event.preventDefault();
+        document
+            .getElementById("loginForm")
+            .classList
+            .add("active");
+
+        document
+            .getElementById("registerForm")
+            .classList
+            .remove("active");
+
+        document
+            .getElementById("loginTab")
+            .classList
+            .add("active");
+
+        document
+            .getElementById("registerTab")
+            .classList
+            .remove("active");
+
+        document
+            .getElementById("authTitle")
+            .textContent = "Welcome back";
+
+        document
+            .getElementById("authDescription")
+            .textContent =
+            "Sign in to access your secure account.";
     }
 
-    document
-        .getElementById("loginModal")
-        .classList.add("active");
 
-}
+    function showRegister() {
 
+        document
+            .getElementById("registerForm")
+            .classList
+            .add("active");
 
-function openRegister(event) {
+        document
+            .getElementById("loginForm")
+            .classList
+            .remove("active");
 
-    if (event) {
-        event.preventDefault();
+        document
+            .getElementById("registerTab")
+            .classList
+            .add("active");
+
+        document
+            .getElementById("loginTab")
+            .classList
+            .remove("active");
+
+        document
+            .getElementById("authTitle")
+            .textContent = "Create your account";
+
+        document
+            .getElementById("authDescription")
+            .textContent =
+            "Set up your multi-layer authentication.";
     }
 
-    document
-        .getElementById("registerModal")
-        .classList.add("active");
 
-}
+    /* ================================
+       PASSWORD VISIBILITY
+    ================================= */
 
+    function togglePassword(id, button) {
 
-function closeModal(id) {
+        const input =
+            document.getElementById(id);
 
-    document
-        .getElementById(id)
-        .classList.remove("active");
+        if (input.type === "password") {
 
-}
+            input.type = "text";
+            button.textContent = "HIDE";
 
+        } else {
 
-function switchToRegister() {
+            input.type = "password";
+            button.textContent = "SHOW";
 
-    closeModal("loginModal");
+        }
 
-    openRegister();
-
-}
-
-
-function switchToLogin() {
-
-    closeModal("registerModal");
-
-    openLogin();
-
-}
+    }
 
 
-window.addEventListener(
-    "click",
-    function(event) {
+    /* ================================
+       PASSWORD STRENGTH
+    ================================= */
 
-        const loginModal =
-            document.getElementById(
-                "loginModal"
-            );
+    function checkPassword() {
 
-        const registerModal =
-            document.getElementById(
-                "registerModal"
-            );
+        const password =
+            document.getElementById("password").value;
+
+        const confirmPassword =
+            document.getElementById("confirmPassword").value;
+
+        const bars = [
+            document.getElementById("bar1"),
+            document.getElementById("bar2"),
+            document.getElementById("bar3"),
+            document.getElementById("bar4")
+        ];
+
+        const text =
+            document.getElementById("strengthText");
 
 
-        if (
-            event.target === loginModal
-        ) {
+        bars.forEach(function(bar) {
 
-            closeModal(
-                "loginModal"
-            );
+            bar.style.background =
+                "rgba(255,255,255,0.09)";
+
+        });
+
+
+        if (password.length === 0) {
+
+            text.textContent =
+                "Minimum 6 characters";
 
         }
 
 
+        else {
+
+            let score = 0;
+
+            if (password.length >= 6)
+                score++;
+
+            if (password.length >= 10)
+                score++;
+
+            if (/[A-Z]/.test(password))
+                score++;
+
+            if (/[0-9!@#$%^&*]/.test(password))
+                score++;
+
+
+            for (let i = 0; i < score; i++) {
+
+                bars[i].style.background =
+                    "linear-gradient(90deg,#527ff5,#8b6cff)";
+
+            }
+
+
+            if (score <= 1) {
+
+                text.textContent =
+                    "Weak password";
+
+            }
+
+            else if (score === 2) {
+
+                text.textContent =
+                    "Moderate password";
+
+            }
+
+            else if (score === 3) {
+
+                text.textContent =
+                    "Strong password";
+
+            }
+
+            else {
+
+                text.textContent =
+                    "Very strong password";
+
+            }
+
+        }
+
+
+        /* Confirmation feedback */
+
         if (
-            event.target === registerModal
+            confirmPassword.length > 0 &&
+            password !== confirmPassword
         ) {
 
-            closeModal(
-                "registerModal"
-            );
+            document
+                .getElementById("confirmPassword")
+                .style.borderColor =
+                "rgba(255,100,124,0.7)";
+
+        }
+
+        else {
+
+            document
+                .getElementById("confirmPassword")
+                .style.borderColor =
+                "";
 
         }
 
     }
-);
 
 
-/* Automatically open the correct
-   modal after Flask redirects */
+    /* ================================
+       HASH / URL TAB SUPPORT
+    ================================= */
 
-if (
-    window.location.hash === "#login"
-) {
+    window.addEventListener("DOMContentLoaded", function() {
 
-    openLogin();
+        if (window.location.hash === "#register") {
 
-}
+            showRegister();
 
+        } else {
 
-if (
-    window.location.hash === "#register"
-) {
+            showLogin();
 
-    openRegister();
+        }
 
-}
-
+    });
 
 </script>
 
-
 </body>
-
 </html>
-```

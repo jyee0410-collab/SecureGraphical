@@ -1,3 +1,4 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 
@@ -5,169 +6,2519 @@
 
     <meta charset="UTF-8">
 
-    <meta name="viewport"
-          content="width=device-width, initial-scale=1.0">
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0">
 
-    <title>SecureGraphical - Dashboard</title>
+    <meta
+        name="description"
+        content="SecureGraphical security dashboard.">
 
-    <link rel="stylesheet"
-          href="{{ url_for('static', filename='style.css') }}">
+    <title>
+        SecureGraphical | Security Dashboard
+    </title>
+
+    <style>
+
+        /* =====================================================
+           GLOBAL
+        ===================================================== */
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        :root {
+
+            --bg: #050b14;
+            --bg2: #091525;
+
+            --card:
+                rgba(13, 27, 46, 0.78);
+
+            --card2:
+                rgba(18, 35, 58, 0.62);
+
+            --border:
+                rgba(255,255,255,0.09);
+
+            --border-light:
+                rgba(255,255,255,0.14);
+
+            --text:
+                #f5f8ff;
+
+            --muted:
+                #8ea2bb;
+
+            --primary:
+                #5b8cff;
+
+            --purple:
+                #7c5cff;
+
+            --success:
+                #35d49a;
+
+            --warning:
+                #ffc857;
+
+            --danger:
+                #ff647c;
+
+        }
+
+
+        html {
+            scroll-behavior: smooth;
+        }
+
+
+        body {
+
+            min-height: 100vh;
+
+            font-family:
+                Inter,
+                ui-sans-serif,
+                system-ui,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                sans-serif;
+
+            color: var(--text);
+
+            background:
+
+                radial-gradient(
+                    circle at 10% 10%,
+                    rgba(91,140,255,0.16),
+                    transparent 30%
+                ),
+
+                radial-gradient(
+                    circle at 90% 15%,
+                    rgba(124,92,255,0.14),
+                    transparent 28%
+                ),
+
+                radial-gradient(
+                    circle at 50% 100%,
+                    rgba(53,212,154,0.07),
+                    transparent 30%
+                ),
+
+                linear-gradient(
+                    135deg,
+                    #040912,
+                    #07111f 50%,
+                    #0a1628
+                );
+
+            overflow-x: hidden;
+        }
+
+
+        body::before {
+
+            content: "";
+
+            position: fixed;
+
+            inset: 0;
+
+            pointer-events: none;
+
+            background-image:
+
+                linear-gradient(
+                    rgba(255,255,255,0.015) 1px,
+                    transparent 1px
+                ),
+
+                linear-gradient(
+                    90deg,
+                    rgba(255,255,255,0.015) 1px,
+                    transparent 1px
+                );
+
+            background-size: 42px 42px;
+
+            mask-image:
+                linear-gradient(
+                    to bottom,
+                    black,
+                    transparent
+                );
+
+        }
+
+
+        /* =====================================================
+           LAYOUT
+        ===================================================== */
+
+        .dashboard {
+
+            min-height: 100vh;
+
+            display: flex;
+
+            flex-direction: column;
+
+        }
+
+
+        /* =====================================================
+           NAVIGATION
+        ===================================================== */
+
+        .navbar {
+
+            height: 78px;
+
+            padding:
+                0 5%;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: space-between;
+
+            border-bottom:
+                1px solid
+                rgba(255,255,255,0.06);
+
+            background:
+                rgba(4,10,18,0.52);
+
+            backdrop-filter:
+                blur(20px);
+
+            position: sticky;
+
+            top: 0;
+
+            z-index: 20;
+
+        }
+
+
+        .brand {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 12px;
+
+        }
+
+
+        .brand-icon {
+
+            width: 42px;
+
+            height: 42px;
+
+            border-radius: 13px;
+
+            display: flex;
+
+            align-items: center;
+
+            justify-content: center;
+
+            background:
+
+                linear-gradient(
+                    135deg,
+                    var(--primary),
+                    var(--purple)
+                );
+
+            box-shadow:
+                0 8px 30px
+                rgba(91,140,255,0.28);
+
+            font-size: 13px;
+
+            font-weight: 900;
+
+        }
+
+
+        .brand-name {
+
+            font-size: 17px;
+
+            font-weight: 850;
+
+            letter-spacing: -0.4px;
+
+        }
+
+
+        .brand-name span {
+
+            color:
+                #7ea4ff;
+
+        }
+
+
+        .nav-right {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 18px;
+
+        }
+
+
+        .system-online {
+
+            display: flex;
+
+            align-items: center;
+
+            gap: 8px;
+
+            color:
+                var(--muted);
+
+            font-size: 11px;
+
+            font-weight: 650;
+
+        }
+
+
+        .online-dot {
+
+            width: 8px;
+
+            height: 8px;
+
+            border-radius: 50%;
+
+            background:
+                var(--success);
+
+            box-shadow:
+                0 0 14px
+                rgba(53,212,154,0.85);
+
+            animation:
+                pulse 2s infinite;
+
+        }
+
+
+        .logout-top {
+
+            text-decoration: none;
+
+            color:
+                #b9c8dc;
+
+            padding:
+                9px 13px;
+
+            border:
+                1px solid
+                rgba(255,255,255,0.09);
+
+            border-radius: 10px;
+
+            background:
+                rgba(255,255,255,0.035);
+
+            font-size: 11px;
+
+            font-weight: 750;
+
+            transition:
+                .2s ease;
+
+        }
+
+
+        .logout-top:hover {
+
+            color: white;
+
+            background:
+                rgba(255,100,124,0.09);
+
+            border-color:
+                rgba(255,100,124,0.25);
+
+            transform:
+                translateY(-1px);
+
+        }
+
+
+        /* =====================================================
+           MAIN
+        ===================================================== */
+
+        .main {
+
+            width:
+                min(1280px, 90%);
+
+            margin:
+                auto;
+
+            padding:
+                45px 0 65px;
+
+            flex: 1;
+
+        }
+
+
+        /* =====================================================
+           HERO
+        ===================================================== */
+
+        .hero {
+
+            display: flex;
+
+            align-items: flex-end;
+
+            justify-content: space-between;
+
+            gap: 30px;
+
+            margin-bottom: 30px;
+
+            animation:
+                fadeUp .65s ease;
+
+        }
+
+
+        .hero-left {
+
+            max-width: 720px;
+
+        }
+
+
+        .eyebrow {
+
+            display: inline-flex;
+
+            align-items: center;
+
+            gap: 7px;
+
+            padding:
+                7px 12px;
+
+            border-radius:
+                999px;
+
+            background:
+                rgba(53,212,154,0.07);
+
+            border:
+                1px solid
+                rgba(53,212,154,0.16);
+
+            color:
+                #8ce5c6;
+
+            font-size:
+                10px;
+
+            font-weight:
+                850;
+
+            letter-spacing:
+                .7px;
+
+            text-transform:
+                uppercase;
+
+            margin-bottom:
+                15px;
+
+        }
+
+
+        .hero h1 {
+
+            font-size:
+                clamp(34px, 5vw, 58px);
+
+            line-height:
+                1;
+
+            letter-spacing:
+                -2.5px;
+
+            margin-bottom:
+                13px;
+
+        }
+
+
+        .gradient {
+
+            background:
+                linear-gradient(
+                    90deg,
+                    #ffffff,
+                    #83a7ff,
+                    #a58bff
+                );
+
+            -webkit-background-clip:
+                text;
+
+            background-clip:
+                text;
+
+            color:
+                transparent;
+
+        }
+
+
+        .hero-description {
+
+            color:
+                var(--muted);
+
+            font-size:
+                14px;
+
+            line-height:
+                1.7;
+
+        }
+
+
+        .user-chip {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                12px;
+
+            padding:
+                11px 15px;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius:
+                15px;
+
+            background:
+                rgba(255,255,255,0.035);
+
+            min-width:
+                210px;
+
+        }
+
+
+        .avatar {
+
+            width:
+                39px;
+
+            height:
+                39px;
+
+            border-radius:
+                12px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    #527ff5,
+                    #7658e9
+                );
+
+            font-size:
+                13px;
+
+            font-weight:
+                900;
+
+        }
+
+
+        .user-chip strong {
+
+            display:
+                block;
+
+            font-size:
+                12px;
+
+            margin-bottom:
+                3px;
+
+        }
+
+
+        .user-chip span {
+
+            color:
+                var(--muted);
+
+            font-size:
+                10px;
+
+        }
+
+
+        /* =====================================================
+           SECURITY BANNER
+        ===================================================== */
+
+        .secure-banner {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                space-between;
+
+            gap:
+                20px;
+
+            padding:
+                18px 20px;
+
+            margin-bottom:
+                22px;
+
+            border:
+                1px solid
+                rgba(53,212,154,0.16);
+
+            border-radius:
+                17px;
+
+            background:
+                linear-gradient(
+                    90deg,
+                    rgba(53,212,154,0.07),
+                    rgba(91,140,255,0.045)
+                );
+
+            animation:
+                fadeUp .75s ease;
+
+        }
+
+
+        .secure-left {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                13px;
+
+        }
+
+
+        .secure-icon {
+
+            width:
+                40px;
+
+            height:
+                40px;
+
+            border-radius:
+                12px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            background:
+                rgba(53,212,154,0.10);
+
+            font-size:
+                18px;
+
+        }
+
+
+        .secure-left strong {
+
+            display:
+                block;
+
+            font-size:
+                12px;
+
+            margin-bottom:
+                3px;
+
+        }
+
+
+        .secure-left span {
+
+            color:
+                var(--muted);
+
+            font-size:
+                10px;
+
+        }
+
+
+        .verified {
+
+            padding:
+                7px 11px;
+
+            border-radius:
+                9px;
+
+            color:
+                #8ce5c6;
+
+            background:
+                rgba(53,212,154,0.08);
+
+            border:
+                1px solid
+                rgba(53,212,154,0.15);
+
+            font-size:
+                10px;
+
+            font-weight:
+                850;
+
+        }
+
+
+        /* =====================================================
+           STAT CARDS
+        ===================================================== */
+
+        .stats {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                repeat(4, 1fr);
+
+            gap:
+                14px;
+
+            margin-bottom:
+                22px;
+
+        }
+
+
+        .stat-card {
+
+            position:
+                relative;
+
+            overflow:
+                hidden;
+
+            padding:
+                19px;
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius:
+                17px;
+
+            background:
+                var(--card);
+
+            backdrop-filter:
+                blur(20px);
+
+            transition:
+                transform .25s ease,
+                border-color .25s ease;
+
+            animation:
+                fadeUp .8s ease;
+
+        }
+
+
+        .stat-card:hover {
+
+            transform:
+                translateY(-3px);
+
+            border-color:
+                var(--border-light);
+
+        }
+
+
+        .stat-card::after {
+
+            content: "";
+
+            position:
+                absolute;
+
+            width:
+                90px;
+
+            height:
+                90px;
+
+            border-radius:
+                50%;
+
+            right:
+                -35px;
+
+            top:
+                -40px;
+
+            background:
+                rgba(91,140,255,0.07);
+
+        }
+
+
+        .stat-icon {
+
+            width:
+                34px;
+
+            height:
+                34px;
+
+            border-radius:
+                10px;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            background:
+                rgba(91,140,255,0.09);
+
+            margin-bottom:
+                14px;
+
+        }
+
+
+        .stat-card:nth-child(2)
+        .stat-icon {
+
+            background:
+                rgba(124,92,255,0.10);
+
+        }
+
+
+        .stat-card:nth-child(3)
+        .stat-icon {
+
+            background:
+                rgba(53,212,154,0.09);
+
+        }
+
+
+        .stat-card:nth-child(4)
+        .stat-icon {
+
+            background:
+                rgba(255,200,87,0.09);
+
+        }
+
+
+        .stat-label {
+
+            color:
+                var(--muted);
+
+            font-size:
+                10px;
+
+            margin-bottom:
+                5px;
+
+        }
+
+
+        .stat-value {
+
+            font-size:
+                18px;
+
+            font-weight:
+                850;
+
+        }
+
+
+        .stat-status {
+
+            margin-top:
+                6px;
+
+            color:
+                #82e2be;
+
+            font-size:
+                9px;
+
+            font-weight:
+                750;
+
+        }
+
+
+        /* =====================================================
+           CONTENT GRID
+        ===================================================== */
+
+        .content-grid {
+
+            display:
+                grid;
+
+            grid-template-columns:
+                1.35fr .65fr;
+
+            gap:
+                22px;
+
+        }
+
+
+        .panel {
+
+            border:
+                1px solid
+                var(--border);
+
+            border-radius:
+                21px;
+
+            background:
+                var(--card);
+
+            backdrop-filter:
+                blur(20px);
+
+            box-shadow:
+                0 25px 70px
+                rgba(0,0,0,.25);
+
+            animation:
+                fadeUp .9s ease;
+
+        }
+
+
+        .panel-header {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                space-between;
+
+            padding:
+                21px 22px;
+
+            border-bottom:
+                1px solid
+                rgba(255,255,255,.055);
+
+        }
+
+
+        .panel-header h2 {
+
+            font-size:
+                15px;
+
+            margin-bottom:
+                4px;
+
+        }
+
+
+        .panel-header p {
+
+            color:
+                var(--muted);
+
+            font-size:
+                10px;
+
+        }
+
+
+        .panel-badge {
+
+            padding:
+                6px 9px;
+
+            border-radius:
+                8px;
+
+            background:
+                rgba(91,140,255,.08);
+
+            color:
+                #9bb5ff;
+
+            border:
+                1px solid
+                rgba(91,140,255,.14);
+
+            font-size:
+                9px;
+
+            font-weight:
+                850;
+
+        }
+
+
+        /* =====================================================
+           AUTHENTICATION LAYERS
+        ===================================================== */
+
+        .layers {
+
+            padding:
+                8px 22px 22px;
+
+        }
+
+
+        .layer {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                13px;
+
+            padding:
+                15px 0;
+
+            border-bottom:
+                1px solid
+                rgba(255,255,255,.055);
+
+        }
+
+
+        .layer:last-child {
+
+            border-bottom:
+                none;
+
+        }
+
+
+        .layer-number {
+
+            width:
+                34px;
+
+            height:
+                34px;
+
+            flex-shrink:
+                0;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            border-radius:
+                10px;
+
+            background:
+                linear-gradient(
+                    135deg,
+                    rgba(91,140,255,.15),
+                    rgba(124,92,255,.12)
+                );
+
+            color:
+                #a9c0ff;
+
+            font-size:
+                11px;
+
+            font-weight:
+                900;
+
+        }
+
+
+        .layer-info {
+
+            flex:
+                1;
+
+        }
+
+
+        .layer-info strong {
+
+            display:
+                block;
+
+            font-size:
+                11px;
+
+            margin-bottom:
+                3px;
+
+        }
+
+
+        .layer-info span {
+
+            color:
+                var(--muted);
+
+            font-size:
+                9px;
+
+            line-height:
+                1.5;
+
+        }
+
+
+        .layer-status {
+
+            color:
+                #82e2be;
+
+            font-size:
+                9px;
+
+            font-weight:
+                850;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            gap:
+                5px;
+
+        }
+
+
+        .mini-dot {
+
+            width:
+                6px;
+
+            height:
+                6px;
+
+            border-radius:
+                50%;
+
+            background:
+                var(--success);
+
+            box-shadow:
+                0 0 8px
+                rgba(53,212,154,.7);
+
+        }
+
+
+        /* =====================================================
+           SECURITY SCORE
+        ===================================================== */
+
+        .score-panel {
+
+            padding:
+                22px;
+
+        }
+
+
+        .score-header {
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                space-between;
+
+            margin-bottom:
+                18px;
+
+        }
+
+
+        .score-title {
+
+            font-size:
+                14px;
+
+            font-weight:
+                800;
+
+        }
+
+
+        .score-label {
+
+            color:
+                #82e2be;
+
+            font-size:
+                10px;
+
+            font-weight:
+                850;
+
+        }
+
+
+        .score-circle {
+
+            width:
+                155px;
+
+            height:
+                155px;
+
+            margin:
+                10px auto 20px;
+
+            border-radius:
+                50%;
+
+            display:
+                flex;
+
+            align-items:
+                center;
+
+            justify-content:
+                center;
+
+            background:
+
+                conic-gradient(
+                    var(--success) 0deg 320deg,
+                    rgba(255,255,255,.07)
+                    320deg 360deg
+                );
+
+            position:
+                relative;
+
+            box-shadow:
+                0 0 45px
+                rgba(53,212,154,.10);
+
+        }
+
+
+        .score-circle::before {
+
+            content: "";
+
+            position:
+                absolute;
+
+            inset:
+                9px;
+
+            border-radius:
+                50%;
+
+            background:
+                #0b182a;
+
+        }
+
+
+        .score-number {
+
+            position:
+                relative;
+
+            text-align:
+                center;
+
+        }
+
+
+        .score-number strong {
+
+            display:
+                block;
+
+            font-size:
+                32px;
+
+            line-height:
+                1;
+
+        }
+
+
+        .score-number span {
+
+            color:
+                var(--muted);
+
+            font-size:
+                9px;
+
+        }
+
+
+        .score-description {
+
+            text-align:
+                center;
+
+            color:
+                var(--muted);
+
+            font-size:
+                10px;
+
+            line-height:
+                1.6;
+
+        }
+
+
+        /* =====================================================
+           ACCOUNT
+        ===================================================== */
+
+        .account {
+
+            padding:
+                21px 22px;
+
+        }
+
+
+        .account-row {
+
+            display:
+                flex;
+
+            justify-content:
+                space-between;
+
+            align-items:
+                center;
+
+            gap:
+                20px;
+
+            padding:
+                13px 0;
+
+            border-bottom:
+                1px solid
+                rgba(255,255,255,.055);
+
+        }
+
+
+        .account-row:last-child {
+
+            border-bottom:
+                none;
+
+        }
+
+
+        .account-row span {
+
+            color:
+                var(--muted);
+
+            font-size:
+                10px;
+
+        }
+
+
+        .account-row strong {
+
+            font-size:
+                10px;
+
+            text-align:
+                right;
+
+            max-width:
+                62%;
+
+            overflow:
+                hidden;
+
+            text-overflow:
+                ellipsis;
+
+            white-space:
+                nowrap;
+
+        }
+
+
+        /* =====================================================
+           FOOTER
+        ===================================================== */
+
+        .footer {
+
+            padding:
+                22px 5%;
+
+            text-align:
+                center;
+
+            color:
+                #536984;
+
+            font-size:
+                9px;
+
+            border-top:
+                1px solid
+                rgba(255,255,255,.045);
+
+        }
+
+
+        /* =====================================================
+           ANIMATION
+        ===================================================== */
+
+        @keyframes fadeUp {
+
+            from {
+
+                opacity:
+                    0;
+
+                transform:
+                    translateY(15px);
+
+            }
+
+            to {
+
+                opacity:
+                    1;
+
+                transform:
+                    translateY(0);
+
+            }
+
+        }
+
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+
+                opacity:
+                    1;
+
+                transform:
+                    scale(1);
+
+            }
+
+            50% {
+
+                opacity:
+                    .55;
+
+                transform:
+                    scale(.82);
+
+            }
+
+        }
+
+
+        /* =====================================================
+           RESPONSIVE
+        ===================================================== */
+
+        @media(max-width: 1000px) {
+
+            .stats {
+
+                grid-template-columns:
+                    repeat(2, 1fr);
+
+            }
+
+            .content-grid {
+
+                grid-template-columns:
+                    1fr;
+
+            }
+
+        }
+
+
+        @media(max-width: 700px) {
+
+            .navbar {
+
+                padding:
+                    0 5%;
+
+            }
+
+            .system-online {
+
+                display:
+                    none;
+
+            }
+
+            .main {
+
+                width:
+                    92%;
+
+                padding-top:
+                    30px;
+
+            }
+
+            .hero {
+
+                flex-direction:
+                    column;
+
+                align-items:
+                    flex-start;
+
+            }
+
+            .user-chip {
+
+                width:
+                    100%;
+
+            }
+
+            .stats {
+
+                grid-template-columns:
+                    1fr 1fr;
+
+            }
+
+            .secure-banner {
+
+                align-items:
+                    flex-start;
+
+                flex-direction:
+                    column;
+
+            }
+
+        }
+
+
+        @media(max-width: 480px) {
+
+            .brand-name {
+
+                font-size:
+                    15px;
+
+            }
+
+            .logout-top {
+
+                font-size:
+                    9px;
+
+                padding:
+                    8px 10px;
+
+            }
+
+            .hero h1 {
+
+                font-size:
+                    36px;
+
+            }
+
+            .stats {
+
+                grid-template-columns:
+                    1fr;
+
+            }
+
+            .panel-header {
+
+                padding:
+                    18px;
+
+            }
+
+            .layers {
+
+                padding:
+                    5px 18px 18px;
+
+            }
+
+            .account {
+
+                padding:
+                    18px;
+
+            }
+
+        }
+
+    </style>
 
 </head>
 
+
 <body>
 
-<div class="container">
 
-    <div class="card dashboard-card">
+<div class="dashboard">
 
-        <div class="logo">
-            SG
+
+    <!-- =================================================
+         NAVIGATION
+    ================================================== -->
+
+    <nav class="navbar">
+
+
+        <div class="brand">
+
+            <div class="brand-icon">
+                SG
+            </div>
+
+            <div class="brand-name">
+                Secure<span>Graphical</span>
+            </div>
+
         </div>
 
-        <h1>
-            Welcome, {{ name }}!
-        </h1>
 
-        <p class="subtitle">
-            You have successfully authenticated.
-        </p>
+        <div class="nav-right">
 
 
-        <!-- SECURITY STATUS -->
+            <div class="system-online">
 
-        <div class="security-status">
+                <div class="online-dot"></div>
 
-            <div class="status-icon">
-                ✓
+                Authentication system online
+
             </div>
+
+
+            <a
+                href="{{ url_for('logout') }}"
+                class="logout-top">
+
+                Sign out
+
+            </a>
+
+
+        </div>
+
+    </nav>
+
+
+
+    <!-- =================================================
+         MAIN
+    ================================================== -->
+
+    <main class="main">
+
+
+        <!-- HERO -->
+
+        <section class="hero">
+
+
+            <div class="hero-left">
+
+
+                <div class="eyebrow">
+
+                    ✓ Authentication Complete
+
+                </div>
+
+
+                <h1>
+
+                    Welcome back,
+                    <span class="gradient">
+                        {{ name }}
+                    </span>
+
+                </h1>
+
+
+                <p class="hero-description">
+
+                    Your identity has been successfully verified
+                    through SecureGraphical's multi-layer
+                    authentication process.
+
+                </p>
+
+
+            </div>
+
+
+
+            <div class="user-chip">
+
+
+                <div class="avatar">
+
+                    {{ name[0]|upper }}
+
+                </div>
+
+
+                <div>
+
+                    <strong>
+                        {{ name }}
+                    </strong>
+
+                    <span>
+                        {{ email }}
+                    </span>
+
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- SECURITY BANNER -->
+
+        <section class="secure-banner">
+
+
+            <div class="secure-left">
+
+
+                <div class="secure-icon">
+                    🛡️
+                </div>
+
+
+                <div>
+
+                    <strong>
+                        Account Security Status
+                    </strong>
+
+                    <span>
+                        All required authentication layers
+                        have been successfully completed.
+                    </span>
+
+                </div>
+
+
+            </div>
+
+
+            <div class="verified">
+
+                VERIFIED
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- STATISTICS -->
+
+        <section class="stats">
+
+
+            <div class="stat-card">
+
+
+                <div class="stat-icon">
+                    🔐
+                </div>
+
+
+                <div class="stat-label">
+                    Authentication
+                </div>
+
+
+                <div class="stat-value">
+                    Multi-Layer
+                </div>
+
+
+                <div class="stat-status">
+                    ● ACTIVE
+                </div>
+
+
+            </div>
+
+
+
+            <div class="stat-card">
+
+
+                <div class="stat-icon">
+                    🎨
+                </div>
+
+
+                <div class="stat-label">
+                    Graphical Layer
+                </div>
+
+
+                <div class="stat-value">
+                    VERIFIED
+                </div>
+
+
+                <div class="stat-status">
+                    ● PASSED
+                </div>
+
+
+            </div>
+
+
+
+            <div class="stat-card">
+
+
+                <div class="stat-icon">
+                    🧩
+                </div>
+
+
+                <div class="stat-label">
+                    Security Layers
+                </div>
+
+
+                <div class="stat-value">
+                    3 Layers
+                </div>
+
+
+                <div class="stat-status">
+                    ● PROTECTED
+                </div>
+
+
+            </div>
+
+
+
+            <div class="stat-card">
+
+
+                <div class="stat-icon">
+                    🟢
+                </div>
+
+
+                <div class="stat-label">
+                    Session
+                </div>
+
+
+                <div class="stat-value">
+                    Secure
+                </div>
+
+
+                <div class="stat-status">
+                    ● ACTIVE
+                </div>
+
+
+            </div>
+
+
+        </section>
+
+
+
+        <!-- CONTENT -->
+
+        <section class="content-grid">
+
+
+            <!-- LEFT -->
 
             <div>
 
-                <h3>
-                    Authentication Successful
-                </h3>
 
-                <p>
-                    Your password and graphical password
-                    have been verified.
-                </p>
+                <!-- AUTHENTICATION LAYERS -->
+
+                <div class="panel">
+
+
+                    <div class="panel-header">
+
+
+                        <div>
+
+                            <h2>
+                                Authentication Architecture
+                            </h2>
+
+                            <p>
+                                Security mechanisms completed
+                                during this session
+                            </p>
+
+                        </div>
+
+
+                        <div class="panel-badge">
+                            3-LAYER SECURITY
+                        </div>
+
+
+                    </div>
+
+
+
+                    <div class="layers">
+
+
+                        <!-- LAYER 01 -->
+
+                        <div class="layer">
+
+
+                            <div class="layer-number">
+                                01
+                            </div>
+
+
+                            <div class="layer-info">
+
+                                <strong>
+                                    Text Password
+                                </strong>
+
+                                <span>
+                                    Password credentials are
+                                    protected using secure
+                                    password hashing.
+                                </span>
+
+                            </div>
+
+
+                            <div class="layer-status">
+
+                                <div class="mini-dot"></div>
+
+                                VERIFIED
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <!-- LAYER 02 -->
+
+                        <div class="layer">
+
+
+                            <div class="layer-number">
+                                02
+                            </div>
+
+
+                            <div class="layer-info">
+
+                                <strong>
+                                    CAPTCHA Verification
+                                </strong>
+
+                                <span>
+                                    Security verification helps
+                                    reduce automated login attempts.
+                                </span>
+
+                            </div>
+
+
+                            <div class="layer-status">
+
+                                <div class="mini-dot"></div>
+
+                                VERIFIED
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <!-- LAYER 03 -->
+
+                        <div class="layer">
+
+
+                            <div class="layer-number">
+                                03
+                            </div>
+
+
+                            <div class="layer-info">
+
+                                <strong>
+                                    Graphical Password
+                                </strong>
+
+                                <span>
+                                    The registered graphical
+                                    character sequence has been
+                                    successfully verified.
+                                </span>
+
+                            </div>
+
+
+                            <div class="layer-status">
+
+                                <div class="mini-dot"></div>
+
+                                VERIFIED
+
+                            </div>
+
+
+                        </div>
+
+
+
+                        <!-- LAYER 04 -->
+
+                        <div class="layer">
+
+
+                            <div class="layer-number">
+                                04
+                            </div>
+
+
+                            <div class="layer-info">
+
+                                <strong>
+                                    Protected Session
+                                </strong>
+
+                                <span>
+                                    Dashboard access is restricted
+                                    to an authenticated session.
+                                </span>
+
+                            </div>
+
+
+                            <div class="layer-status">
+
+                                <div class="mini-dot"></div>
+
+                                ACTIVE
+
+                            </div>
+
+
+                        </div>
+
+
+                    </div>
+
+                </div>
+
+
+
+                <!-- ACCOUNT -->
+
+                <div
+                    class="panel"
+                    style="margin-top:22px;">
+
+
+                    <div class="panel-header">
+
+
+                        <div>
+
+                            <h2>
+                                Account Information
+                            </h2>
+
+                            <p>
+                                Registered account details
+                            </p>
+
+                        </div>
+
+
+                        <div class="panel-badge">
+                            ACCOUNT
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="account">
+
+
+                        <div class="account-row">
+
+                            <span>
+                                Full Name
+                            </span>
+
+                            <strong>
+                                {{ name }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="account-row">
+
+                            <span>
+                                Email Address
+                            </span>
+
+                            <strong>
+                                {{ email }}
+                            </strong>
+
+                        </div>
+
+
+                        <div class="account-row">
+
+                            <span>
+                                Authentication Method
+                            </span>
+
+                            <strong>
+                                Multi-Layer Graphical Authentication
+                            </strong>
+
+                        </div>
+
+
+                        <div class="account-row">
+
+                            <span>
+                                Account Status
+                            </span>
+
+                            <strong
+                                style="color:#82e2be;">
+
+                                ● Protected
+
+                            </strong>
+
+                        </div>
+
+
+                    </div>
+
+                </div>
+
 
             </div>
 
-        </div>
 
 
-        <!-- USER INFORMATION -->
+            <!-- RIGHT -->
 
-        <div class="dashboard-section">
+            <div>
 
-            <h2>
-                Account Information
-            </h2>
 
-            <div class="info-row">
+                <!-- SECURITY SCORE -->
 
-                <span>
-                    Name
-                </span>
+                <div class="panel score-panel">
 
-                <strong>
-                    {{ name }}
-                </strong>
+
+                    <div class="score-header">
+
+
+                        <div class="score-title">
+                            Security Overview
+                        </div>
+
+
+                        <div class="score-label">
+                            STRONG
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="score-circle">
+
+
+                        <div class="score-number">
+
+                            <strong>
+                                89
+                            </strong>
+
+                            <span>
+                                PROTECTION
+                            </span>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <p class="score-description">
+
+                        Your account is protected by multiple
+                        authentication mechanisms designed to
+                        reduce credential exposure and improve
+                        authentication security.
+
+                    </p>
+
+
+                </div>
+
+
+
+                <!-- SECURITY FEATURES -->
+
+                <div
+                    class="panel"
+                    style="margin-top:22px;">
+
+
+                    <div class="panel-header">
+
+
+                        <div>
+
+                            <h2>
+                                Protection Features
+                            </h2>
+
+                            <p>
+                                Security controls
+                            </p>
+
+                        </div>
+
+
+                    </div>
+
+
+                    <div class="layers">
+
+
+                        <div class="layer">
+
+
+                            <div class="layer-number">
+                                ✓
+                            </div>
+
+
+                            <div class="layer-info">
+
+                                <strong>
+                                    Password Hashing
+                                </strong>
+
+                                <span>
+                                    Credentials are not stored
+                                    as plain text.
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="layer">
+
+
+                            <div class="layer-number">
+                                ✓
+                            </div>
+
+
+                            <div class="layer-info">
+
+                                <strong>
+                                    Graphical Authentication
+                                </strong>
+
+                                <span>
+                                    Character-based graphical
+                                    verification.
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="layer">
+
+
+                            <div class="layer-number">
+                                ✓
+                            </div>
+
+
+                            <div class="layer-info">
+
+                                <strong>
+                                    CAPTCHA Protection
+                                </strong>
+
+                                <span>
+                                    Additional verification
+                                    against automated attempts.
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+
+                        <div class="layer">
+
+
+                            <div class="layer-number">
+                                ✓
+                            </div>
+
+
+                            <div class="layer-info">
+
+                                <strong>
+                                    Session Protection
+                                </strong>
+
+                                <span>
+                                    Dashboard requires
+                                    authenticated session access.
+                                </span>
+
+                            </div>
+
+                        </div>
+
+
+                    </div>
+
+
+                </div>
+
+
+
+                <!-- LOGOUT -->
+
+                <a
+                    href="{{ url_for('logout') }}"
+                    style="
+                        display:block;
+                        margin-top:22px;
+                        text-align:center;
+                        text-decoration:none;
+                        padding:14px;
+                        border-radius:13px;
+                        border:1px solid rgba(255,100,124,.18);
+                        background:rgba(255,100,124,.06);
+                        color:#ff9aaa;
+                        font-size:11px;
+                        font-weight:850;
+                        transition:.2s ease;
+                    "
+                    onmouseover="
+                        this.style.background='rgba(255,100,124,.11)';
+                        this.style.borderColor='rgba(255,100,124,.30)';
+                    "
+                    onmouseout="
+                        this.style.background='rgba(255,100,124,.06)';
+                        this.style.borderColor='rgba(255,100,124,.18)';
+                    ">
+
+                    🔒 Securely Sign Out
+
+                </a>
+
 
             </div>
 
 
-            <div class="info-row">
-
-                <span>
-                    Email
-                </span>
-
-                <strong>
-                    {{ email }}
-                </strong>
-
-            </div>
+        </section>
 
 
-            <div class="info-row">
-
-                <span>
-                    Authentication
-                </span>
-
-                <strong>
-                    Multi-Factor
-                </strong>
-
-            </div>
-
-        </div>
+    </main>
 
 
-        <!-- SECURITY FEATURES -->
 
-        <div class="dashboard-section">
+    <!-- =================================================
+         FOOTER
+    ================================================== -->
 
-            <h2>
-                Security Features
-            </h2>
+    <footer class="footer">
 
-            <div class="feature-list">
+        SecureGraphical • Improved Text-Based
+        Shoulder-Surfing Resistant Graphical Password System
 
-                <div class="feature">
-                    ✓ Password Hashing
-                </div>
+        <br>
 
-                <div class="feature">
-                    ✓ Graphical Password
-                </div>
+        Multi-Layer Authentication • Secure Session •
+        Graphical Password Verification
 
-                <div class="feature">
-                    ✓ CAPTCHA Verification
-                </div>
+    </footer>
 
-                <div class="feature">
-                    ✓ Session Authentication
-                </div>
-
-                <div class="feature">
-                    ✓ Protected Dashboard
-                </div>
-
-            </div>
-
-        </div>
-
-
-        <!-- LOGOUT -->
-
-        <a
-            href="{{ url_for('logout') }}"
-            class="button logout-button">
-
-            Logout
-
-        </a>
-
-
-        <div class="security">
-
-            🔒 SecureGraphical Authentication System
-
-            <br>
-
-            Your account is protected by multiple
-            authentication mechanisms.
-
-        </div>
-
-    </div>
 
 </div>
+
 
 </body>
 
 </html>
+```

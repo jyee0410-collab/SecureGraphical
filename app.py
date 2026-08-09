@@ -5,17 +5,23 @@ import random
 import hashlib
 import os
 from functools import wraps
+from datetime import datetime, timedelta
 
 
 app = Flask(__name__)
 
-# Secret key
 app.secret_key = os.environ.get(
     "SECRET_KEY",
     "SecureGraphical-Development-Key-2026"
 )
 
-DATABASE = "securegraphical.db"
+DATABASE = os.path.join(
+    app.root_path,
+    "securegraphical.db"
+)
+
+MAX_FAILED_ATTEMPTS = 5
+LOCKOUT_MINUTES = 10
 
 
 # =========================================================
@@ -43,6 +49,88 @@ def init_database():
         )
     """)
 
+    db.execute("""
+        CREATE TABLE IF NOT EXISTS login_activity (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            user_id INTEGER,
+            email TEXT,
+            action TEXT NOT NULL,
+            status TEXT NOT NULL,
+            ip_address TEXT,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(user_id) REFERENCES users(id)
+        )
+    """)
+
+    # Safe migration for older databases
+    columns = [
+        row["name"]
+        for row in db.execute(
+            "PRAGMA table_info(users)"
+        ).fetchall()
+    ]
+
+    if "failed_attempts" not in columns:
+        db.execute(
+            "ALTER TABLE users ADD COLUMN failed_attempts INTEGER DEFAULT 0"
+        )
+
+    if "locked_until" not in columns:
+        db.execute(
+            "ALTER TABLE users ADD COLUMN locked_until TEXT"
+        )
+
+    if "last_login" not in columns:
+        db.execute(
+            "ALTER TABLE users ADD COLUMN last_login TEXT"
+        )
+
+    db.commit()
+    db.close()
+
+
+# =========================================================
+# ACTIVITY LOG
+# =========================================================
+
+def log_activity(
+    action,
+    status,
+    user_id=None,
+    email=None
+):
+
+    db = get_db()
+
+    ip_address = request.headers.get(
+        "X-Forwarded-For",
+        request.remote_addr
+    )
+
+    if ip_address and "," in ip_address:
+        ip_address = ip_address.split(",")[0].strip()
+
+    db.execute(
+        """
+        INSERT INTO login_activity
+        (
+            user_id,
+            email,
+            action,
+            status,
+            ip_address
+        )
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (
+            user_id,
+            email,
+            action,
+            status,
+            ip_address
+        )
+    )
+
     db.commit()
     db.close()
 
@@ -66,7 +154,7 @@ def create_captcha():
 
 
 # =========================================================
-# GRAPHICAL PASSWORD HASH
+# GRAPHICAL PASSWORD
 # =========================================================
 
 def hash_graphical_password(sequence):
@@ -114,7 +202,8 @@ def home():
         create_captcha()
 
     return render_template(
-        "index.html"
+        "index.html",
+        captcha_question=session["captcha_question"]
     )
 
 
@@ -153,12 +242,8 @@ def register():
         ""
     ).strip()
 
-
     # CAPTCHA
-
-    if captcha != session.get(
-        "captcha_answer"
-    ):
+    if captcha != session.get("captcha_answer"):
 
         flash(
             "Incorrect security verification.",
@@ -171,9 +256,7 @@ def register():
             url_for("home") + "#register"
         )
 
-
-    # EMPTY FIELDS
-
+    # Required fields
     if not name or not email or not password:
 
         flash(
@@ -187,9 +270,7 @@ def register():
             url_for("home") + "#register"
         )
 
-
-    # PASSWORD MATCH
-
+    # Password match
     if password != confirm_password:
 
         flash(
@@ -203,9 +284,7 @@ def register():
             url_for("home") + "#register"
         )
 
-
-    # PASSWORD LENGTH
-
+    # Password length
     if len(password) < 6:
 
         flash(
@@ -218,9 +297,6 @@ def register():
         return redirect(
             url_for("home") + "#register"
         )
-
-
-    # CHECK EXISTING EMAIL
 
     db = get_db()
 
@@ -235,7 +311,6 @@ def register():
 
     db.close()
 
-
     if existing_user:
 
         flash(
@@ -249,19 +324,12 @@ def register():
             url_for("home") + "#register"
         )
 
-
-    # TEMPORARY REGISTRATION DATA
-
     session["registration_name"] = name
-
     session["registration_email"] = email
 
     session["registration_password_hash"] = (
         generate_password_hash(password)
     )
-
-
-    # GO TO GRAPHICAL PASSWORD
 
     return redirect(
         url_for("create_graphical_password")
@@ -284,15 +352,11 @@ def create_graphical_password():
             url_for("home")
         )
 
-
     if request.method == "POST":
 
         selected = request.form.getlist(
             "selected_images"
         )
-
-
-        # Must select exactly 3
 
         if len(selected) != 3:
 
@@ -306,24 +370,13 @@ def create_graphical_password():
                 mode="register"
             )
 
-
         graphical_hash = hash_graphical_password(
             selected
         )
 
-
-        name = session[
-            "registration_name"
-        ]
-
-        email = session[
-            "registration_email"
-        ]
-
-        password_hash = session[
-            "registration_password_hash"
-        ]
-
+        name = session["registration_name"]
+        email = session["registration_email"]
+        password_hash = session["registration_password_hash"]
 
         db = get_db()
 
@@ -352,6 +405,12 @@ def create_graphical_password():
 
         except sqlite3.IntegrityError:
 
+            db.close()
+
+            session.clear()
+
+            create_captcha()
+
             flash(
                 "This email is already registered.",
                 "error"
@@ -363,40 +422,25 @@ def create_graphical_password():
 
         finally:
 
-            db.close()
+            try:
+                db.close()
+            except Exception:
+                pass
 
-
-        # Clear registration information
-
-        session.pop(
-            "registration_name",
-            None
-        )
-
-        session.pop(
-            "registration_email",
-            None
-        )
-
-        session.pop(
-            "registration_password_hash",
-            None
-        )
-
+        session.pop("registration_name", None)
+        session.pop("registration_email", None)
+        session.pop("registration_password_hash", None)
 
         create_captcha()
 
-
         flash(
-            "Registration successful! Please login.",
+            "Registration successful. Please login.",
             "success"
         )
-
 
         return redirect(
             url_for("home") + "#login"
         )
-
 
     return render_template(
         "graphical_password.html",
@@ -429,12 +473,14 @@ def login():
         ""
     ).strip()
 
-
     # CAPTCHA
+    if captcha != session.get("captcha_answer"):
 
-    if captcha != session.get(
-        "captcha_answer"
-    ):
+        log_activity(
+            "CAPTCHA verification",
+            "Failed",
+            email=email
+        )
 
         flash(
             "Incorrect security verification.",
@@ -446,9 +492,6 @@ def login():
         return redirect(
             url_for("home") + "#login"
         )
-
-
-    # FIND USER
 
     db = get_db()
 
@@ -463,8 +506,13 @@ def login():
 
     db.close()
 
-
     if user is None:
+
+        log_activity(
+            "Password authentication",
+            "Failed",
+            email=email
+        )
 
         flash(
             "Invalid email or password.",
@@ -477,18 +525,102 @@ def login():
             url_for("home") + "#login"
         )
 
+    # Account lock
+    if user["locked_until"]:
 
-    # CHECK PASSWORD
+        try:
 
+            locked_until = datetime.fromisoformat(
+                user["locked_until"]
+            )
+
+            if datetime.now() < locked_until:
+
+                flash(
+                    "Account temporarily locked due to multiple failed attempts.",
+                    "error"
+                )
+
+                return redirect(
+                    url_for("home") + "#login"
+                )
+
+        except ValueError:
+            pass
+
+    # Password check
     if not check_password_hash(
         user["password_hash"],
         password
     ):
 
-        flash(
-            "Invalid email or password.",
-            "error"
-        )
+        db = get_db()
+
+        attempts = (user["failed_attempts"] or 0) + 1
+
+        if attempts >= MAX_FAILED_ATTEMPTS:
+
+            locked_until = (
+                datetime.now()
+                + timedelta(minutes=LOCKOUT_MINUTES)
+            )
+
+            db.execute(
+                """
+                UPDATE users
+                SET failed_attempts = 0,
+                    locked_until = ?
+                WHERE id = ?
+                """,
+                (
+                    locked_until.isoformat(),
+                    user["id"]
+                )
+            )
+
+            db.commit()
+            db.close()
+
+            log_activity(
+                "Password authentication",
+                "Account locked",
+                user_id=user["id"],
+                email=email
+            )
+
+            flash(
+                "Too many failed attempts. Account locked for 10 minutes.",
+                "error"
+            )
+
+        else:
+
+            db.execute(
+                """
+                UPDATE users
+                SET failed_attempts = ?
+                WHERE id = ?
+                """,
+                (
+                    attempts,
+                    user["id"]
+                )
+            )
+
+            db.commit()
+            db.close()
+
+            log_activity(
+                "Password authentication",
+                "Failed",
+                user_id=user["id"],
+                email=email
+            )
+
+            flash(
+                "Invalid email or password.",
+                "error"
+            )
 
         create_captcha()
 
@@ -496,17 +628,16 @@ def login():
             url_for("home") + "#login"
         )
 
-
-    # TEMPORARY LOGIN SESSION
-
     session["login_user_id"] = user["id"]
-
     session["login_user_name"] = user["name"]
-
     session["login_user_email"] = user["email"]
 
-
-    # GO TO GRAPHICAL PASSWORD
+    log_activity(
+        "Password authentication",
+        "Successful",
+        user_id=user["id"],
+        email=email
+    )
 
     return redirect(
         url_for("verify_graphical_password")
@@ -529,13 +660,11 @@ def verify_graphical_password():
             url_for("home")
         )
 
-
     if request.method == "POST":
 
         selected = request.form.getlist(
             "selected_images"
         )
-
 
         if len(selected) != 3:
 
@@ -549,11 +678,9 @@ def verify_graphical_password():
                 mode="login"
             )
 
-
         submitted_hash = hash_graphical_password(
             selected
         )
-
 
         db = get_db()
 
@@ -570,60 +697,69 @@ def verify_graphical_password():
 
         db.close()
 
-
         if (
             user is not None
             and submitted_hash
             == user["graphical_password_hash"]
         ):
 
-            # Authentication successful
+            db = get_db()
+
+            db.execute(
+                """
+                UPDATE users
+                SET failed_attempts = 0,
+                    locked_until = NULL,
+                    last_login = ?
+                WHERE id = ?
+                """,
+                (
+                    datetime.now().isoformat(),
+                    user["id"]
+                )
+            )
+
+            db.commit()
+            db.close()
+
+            log_activity(
+                "Graphical password",
+                "Successful",
+                user_id=user["id"],
+                email=user["email"]
+            )
 
             session.clear()
 
             session["user_id"] = user["id"]
-
             session["user_name"] = user["name"]
-
             session["user_email"] = user["email"]
-
 
             return redirect(
                 url_for("dashboard")
             )
 
-
-        # Wrong graphical password
-
-        session.pop(
-            "login_user_id",
-            None
+        log_activity(
+            "Graphical password",
+            "Failed",
+            user_id=user["id"] if user else None,
+            email=user["email"] if user else None
         )
 
-        session.pop(
-            "login_user_name",
-            None
-        )
-
-        session.pop(
-            "login_user_email",
-            None
-        )
-
+        session.pop("login_user_id", None)
+        session.pop("login_user_name", None)
+        session.pop("login_user_email", None)
 
         create_captcha()
-
 
         flash(
             "Incorrect graphical password.",
             "error"
         )
 
-
         return redirect(
             url_for("home") + "#login"
         )
-
 
     return render_template(
         "graphical_password.html",
@@ -639,10 +775,255 @@ def verify_graphical_password():
 @login_required
 def dashboard():
 
+    db = get_db()
+
+    user = db.execute(
+        """
+        SELECT *
+        FROM users
+        WHERE id = ?
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    activity = db.execute(
+        """
+        SELECT *
+        FROM login_activity
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT 5
+        """,
+        (session["user_id"],)
+    ).fetchall()
+
+    db.close()
+
     return render_template(
         "dashboard.html",
-        name=session["user_name"],
-        email=session["user_email"]
+        user=user,
+        activity=activity
+    )
+
+
+# =========================================================
+# SECURITY CENTER
+# =========================================================
+
+@app.route("/security")
+@login_required
+def security():
+
+    db = get_db()
+
+    user = db.execute(
+        """
+        SELECT *
+        FROM users
+        WHERE id = ?
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    db.close()
+
+    return render_template(
+        "security.html",
+        user=user
+    )
+
+
+# =========================================================
+# ACTIVITY
+# =========================================================
+
+@app.route("/activity")
+@login_required
+def activity():
+
+    db = get_db()
+
+    records = db.execute(
+        """
+        SELECT *
+        FROM login_activity
+        WHERE user_id = ?
+        ORDER BY id DESC
+        LIMIT 50
+        """,
+        (session["user_id"],)
+    ).fetchall()
+
+    db.close()
+
+    return render_template(
+        "activity.html",
+        records=records
+    )
+
+
+# =========================================================
+# ACCOUNT
+# =========================================================
+
+@app.route("/account")
+@login_required
+def account():
+
+    db = get_db()
+
+    user = db.execute(
+        """
+        SELECT *
+        FROM users
+        WHERE id = ?
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    db.close()
+
+    return render_template(
+        "account.html",
+        user=user
+    )
+
+
+# =========================================================
+# SETTINGS
+# =========================================================
+
+@app.route("/settings")
+@login_required
+def settings():
+
+    db = get_db()
+
+    user = db.execute(
+        """
+        SELECT *
+        FROM users
+        WHERE id = ?
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    db.close()
+
+    return render_template(
+        "settings.html",
+        user=user
+    )
+
+
+# =========================================================
+# CHANGE PASSWORD
+# =========================================================
+
+@app.route(
+    "/change-password",
+    methods=["POST"]
+)
+@login_required
+def change_password():
+
+    current_password = request.form.get(
+        "current_password",
+        ""
+    )
+
+    new_password = request.form.get(
+        "new_password",
+        ""
+    )
+
+    confirm_password = request.form.get(
+        "confirm_password",
+        ""
+    )
+
+    db = get_db()
+
+    user = db.execute(
+        """
+        SELECT *
+        FROM users
+        WHERE id = ?
+        """,
+        (session["user_id"],)
+    ).fetchone()
+
+    if not check_password_hash(
+        user["password_hash"],
+        current_password
+    ):
+
+        db.close()
+
+        flash(
+            "Current password is incorrect.",
+            "error"
+        )
+
+        return redirect(
+            url_for("settings")
+        )
+
+    if len(new_password) < 6:
+
+        db.close()
+
+        flash(
+            "New password must contain at least 6 characters.",
+            "error"
+        )
+
+        return redirect(
+            url_for("settings")
+        )
+
+    if new_password != confirm_password:
+
+        db.close()
+
+        flash(
+            "New passwords do not match.",
+            "error"
+        )
+
+        return redirect(
+            url_for("settings")
+        )
+
+    db.execute(
+        """
+        UPDATE users
+        SET password_hash = ?
+        WHERE id = ?
+        """,
+        (
+            generate_password_hash(new_password),
+            user["id"]
+        )
+    )
+
+    db.commit()
+    db.close()
+
+    log_activity(
+        "Password changed",
+        "Successful",
+        user_id=user["id"],
+        email=user["email"]
+    )
+
+    flash(
+        "Password updated successfully.",
+        "success"
+    )
+
+    return redirect(
+        url_for("settings")
     )
 
 
@@ -652,6 +1033,18 @@ def dashboard():
 
 @app.route("/logout")
 def logout():
+
+    user_id = session.get("user_id")
+    email = session.get("user_email")
+
+    if user_id:
+
+        log_activity(
+            "Logout",
+            "Successful",
+            user_id=user_id,
+            email=email
+        )
 
     session.clear()
 

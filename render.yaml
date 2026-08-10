@@ -1,17 +1,11 @@
 services:
-
   - type: web
-
     name: securegraphical
-
     runtime: python
-
     buildCommand: pip install -r requirements.txt
-
     startCommand: gunicorn app:app
-
     envVars:
-
       - key: SECRET_KEY
-
         generateValue: true
+      - key: COOKIE_SECURE
+        value: "1"

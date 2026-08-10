@@ -1,0 +1,6 @@
+.venv/
+__pycache__/
+*.pyc
+securegraphical.db
+securegraphical_old.db
+.env

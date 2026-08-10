@@ -1,139 +1,217 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
 
-<head>
-
-<meta charset="UTF-8">
-
-<meta name="viewport"
-      content="width=device-width, initial-scale=1.0">
-
-<title>SecureGraphical | Settings</title>
-
-<link
-    rel="stylesheet"
-    href="{{ url_for('static', filename='style.css') }}">
-
-</head>
-
-<body>
-
-<nav class="navbar">
-
-    <a
-        href="{{ url_for('dashboard') }}"
-        class="brand">
-
-        <div class="brand-icon">
-            ◆
-        </div>
-
-        <div class="brand-text">
-            Secure<span>Graphical</span>
-        </div>
-
-    </a>
-
-</nav>
+{% block title %}
+Settings · SecureGraphical
+{% endblock %}
 
 
-<main class="page container">
+{% block content %}
 
-    <div class="page-title">
+<section class="settings-page">
+
+    <div class="section-heading">
 
         <div class="eyebrow">
-            Security Settings
+            ACCOUNT SETTINGS
         </div>
 
         <h1>
-            Manage your security
+            Your security profile
         </h1>
 
         <p>
-            Update your account authentication credentials.
+            Review the authentication information associated
+            with your SecureGraphical account.
         </p>
 
     </div>
 
 
-    <div class="card form-card">
-
-        <h2 style="font-size:17px;margin-bottom:18px;">
-            Change Password
-        </h2>
+    <div class="settings-grid">
 
 
-        <form
-            method="POST"
-            action="{{ url_for('change_password') }}">
+        <div class="card setting-card">
 
-            <div class="form-group">
+            <div class="card-title">
 
-                <label>
-                    Current Password
-                </label>
+                <span class="title-icon">
+                    👤
+                </span>
 
-                <input
-                    type="password"
-                    name="current_password"
-                    required>
+                <div>
 
-            </div>
+                    <h2>
+                        Account information
+                    </h2>
 
+                    <p>
+                        Registered account details
+                    </p>
 
-            <div class="form-group">
-
-                <label>
-                    New Password
-                </label>
-
-                <input
-                    type="password"
-                    name="new_password"
-                    minlength="6"
-                    required>
-
-                <div class="form-note">
-                    Minimum 6 characters.
                 </div>
 
             </div>
 
 
-            <div class="form-group">
+            <div class="setting-row">
 
-                <label>
-                    Confirm New Password
-                </label>
+                <span>
+                    Username
+                </span>
 
-                <input
-                    type="password"
-                    name="confirm_password"
-                    minlength="6"
-                    required>
+                <strong>
+                    {{ user.username }}
+                </strong>
 
             </div>
 
 
-            <button
-                type="submit"
-                class="button">
+            <div class="setting-row">
 
-                Update Password
+                <span>
+                    Recovery email
+                </span>
 
-            </button>
+                <strong>
+                    {{ user.email }}
+                </strong>
 
-        </form>
+            </div>
+
+
+            <div class="setting-row">
+
+                <span>
+                    Pass-colour
+                </span>
+
+                <strong class="colour-value">
+
+                    {% for color in colors %}
+
+                        {% if color.name == user.pass_color %}
+
+                            <span
+                                class="tiny-colour"
+                                style="background: {{ color.hex }}"
+                            ></span>
+
+                        {% endif %}
+
+                    {% endfor %}
+
+                    {{ user.pass_color }}
+
+                </strong>
+
+            </div>
+
+
+            <div class="setting-row">
+
+                <span>
+                    Account created
+                </span>
+
+                <strong>
+                    {{ user.created_at[:10] }}
+                </strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="card setting-card">
+
+            <div class="card-title">
+
+                <span class="title-icon">
+                    🔐
+                </span>
+
+                <div>
+
+                    <h2>
+                        Authentication design
+                    </h2>
+
+                    <p>
+                        SecureGraphical features
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <ul class="feature-list">
+
+                <li>
+                    <span>✓</span>
+                    16-character project alphabet
+                </li>
+
+                <li>
+                    <span>✓</span>
+                    8 colour sectors
+                </li>
+
+                <li>
+                    <span>✓</span>
+                    Randomized character positions
+                </li>
+
+                <li>
+                    <span>✓</span>
+                    Clockwise and anti-clockwise rotation
+                </li>
+
+                <li>
+                    <span>✓</span>
+                    Graphical password sequence
+                </li>
+
+                <li>
+                    <span>✓</span>
+                    CAPTCHA verification
+                </li>
+
+                <li>
+                    <span>✓</span>
+                    Temporary account lock
+                </li>
+
+            </ul>
+
+        </div>
 
     </div>
 
-</main>
 
+    <div class="info-box">
 
-<footer class="footer">
-    SecureGraphical Security Settings
-</footer>
+        <div class="info-icon">
+            i
+        </div>
 
-</body>
+        <div>
 
-</html>
+            <strong>
+                Important security note
+            </strong>
+
+            <p>
+                Your textual password is stored as a password hash
+                rather than plain text in the database.
+                The graphical interface is randomized for every
+                new login session.
+            </p>
+
+        </div>
+
+    </div>
+
+</section>
+
+{% endblock %}

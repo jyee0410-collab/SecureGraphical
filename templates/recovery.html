@@ -1,31 +1,131 @@
 {% extends "base.html" %}
-{% block title %}Account Recovery · SecureGraphical{% endblock %}
+
+{% block title %}
+Account Recovery · SecureGraphical
+{% endblock %}
+
 
 {% block content %}
-<div class="center-wrap">
-  <div class="card form-card recovery-card">
-    <div class="page-title">
-      <div class="eyebrow">ACCOUNT RECOVERY</div>
-      <h1>Re-enable your account</h1>
-      <p>Enter the username and registered recovery email.</p>
+
+<section class="auth-page recovery-page">
+
+    <div class="auth-intro">
+
+        <div class="eyebrow">
+            ACCOUNT RECOVERY
+        </div>
+
+        <h1>
+            Re-enable your account.
+        </h1>
+
+        <p>
+            If your account has been temporarily locked after
+            too many failed login attempts, verify your
+            username and registered recovery email.
+        </p>
+
+
+        <div class="security-note">
+
+            <div class="shield">
+                ✓
+            </div>
+
+            <div>
+
+                <strong>
+                    Identity verification
+                </strong>
+
+                <p>
+                    Your recovery email must match the
+                    email stored during registration.
+                </p>
+
+            </div>
+
+        </div>
+
     </div>
 
-    <form method="post" class="form">
-      <label>Username</label>
-      <input name="username" required placeholder="Enter username">
 
-      <label>Recovery email</label>
-      <input name="email" type="email" required placeholder="name@example.com">
+    <div class="card form-card">
 
-      <button class="primary-btn" type="submit">Verify identity & re-enable</button>
-    </form>
+        <div class="card-head">
 
-    <div class="info-box">
-      <strong>Demo implementation:</strong>
-      This project verifies the registered email and clears the temporary lock.
-      For a production system, replace this with a real time-limited email OTP or
-      password-reset token service.
+            <span class="step">
+                ↻
+            </span>
+
+            <div>
+
+                <h2>
+                    Account recovery
+                </h2>
+
+                <p>
+                    Verify your registered details.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <form
+            method="post"
+            class="form"
+        >
+
+            <label>
+                Username
+            </label>
+
+            <input
+                name="username"
+                required
+                placeholder="Enter your username"
+            >
+
+
+            <label>
+                Recovery email
+            </label>
+
+            <input
+                name="email"
+                type="email"
+                required
+                placeholder="Enter your registered email"
+            >
+
+
+            <button
+                class="primary-btn"
+                type="submit"
+            >
+                Verify and re-enable account
+                <span>→</span>
+            </button>
+
+        </form>
+
+
+        <div class="auth-links">
+
+            <a href="{{ url_for('index') }}">
+                ← Back to login
+            </a>
+
+            <a href="{{ url_for('register') }}">
+                Create account
+            </a>
+
+        </div>
+
     </div>
-  </div>
-</div>
+
+</section>
+
 {% endblock %}

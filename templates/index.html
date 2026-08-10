@@ -1,81 +1,240 @@
 {% extends "base.html" %}
-{% block title %}Login · SecureGraphical{% endblock %}
+
+{% block title %}
+Login · SecureGraphical
+{% endblock %}
+
 
 {% block content %}
+
 <section class="hero-grid">
-  <div class="hero-copy">
-    <div class="eyebrow">SHOULDER-SURFING RESISTANT AUTHENTICATION</div>
-    <h1>Secure login with a <span>dynamic colour circle.</span></h1>
-    <p class="lead">
-      SecureGraphical combines a 4–8 character textual password with a
-      pass-colour, randomized 16-character circular interface, directional
-      rotation and security verification.
-    </p>
 
-    <div class="feature-row">
-      <div><strong>16</strong><span>Characters</span></div>
-      <div><strong>8</strong><span>Colour sectors</span></div>
-      <div><strong>2</strong><span>Rotation directions</span></div>
+    <div class="hero-copy">
+
+        <div class="eyebrow">
+            SHOULDER-SURFING RESISTANT AUTHENTICATION
+        </div>
+
+        <h1>
+            Secure login with a
+            <span>dynamic colour circle.</span>
+        </h1>
+
+        <p class="lead">
+
+            SecureGraphical combines a familiar
+            textual password with a randomized
+            graphical authentication interface,
+            pass-colour protection and security verification.
+
+        </p>
+
+
+        <div class="feature-row">
+
+            <div>
+                <strong>16</strong>
+                <span>Characters</span>
+            </div>
+
+            <div>
+                <strong>8</strong>
+                <span>Colour sectors</span>
+            </div>
+
+            <div>
+                <strong>2</strong>
+                <span>Rotations</span>
+            </div>
+
+        </div>
+
+
+        <div class="security-note">
+
+            <div class="shield">
+                ✓
+            </div>
+
+            <div>
+
+                <strong>
+                    Designed against shoulder surfing
+                </strong>
+
+                <p>
+                    Character positions are randomized
+                    for every graphical login session.
+                </p>
+
+            </div>
+
+        </div>
+
     </div>
 
-    <div class="security-note">
-      <div class="shield">✓</div>
-      <div>
-        <strong>Designed against shoulder surfing</strong>
-        <p>The character positions are randomized for every graphical login session.</p>
-      </div>
+
+    <div class="card auth-card">
+
+        <div class="card-head">
+
+            <span class="step">
+                01
+            </span>
+
+            <div>
+
+                <h2>
+                    Sign in
+                </h2>
+
+                <p>
+                    Start with your textual password.
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <form
+            action="{{ url_for('login_start') }}"
+            method="post"
+            class="form"
+        >
+
+            <label>
+                Username
+            </label>
+
+            <input
+                name="username"
+                required
+                autocomplete="username"
+                placeholder="Enter username"
+            >
+
+
+            <label>
+                Textual password
+            </label>
+
+            <input
+                name="password"
+                type="password"
+                required
+                minlength="4"
+                maxlength="8"
+                autocomplete="current-password"
+                placeholder="4–8 characters"
+            >
+
+            <div class="input-help">
+                Allowed: a–h and 1–8
+            </div>
+
+
+            <button
+                class="primary-btn"
+                type="submit"
+            >
+                Continue to graphical verification
+                <span>→</span>
+            </button>
+
+        </form>
+
+
+        <div class="auth-links">
+
+            <a href="{{ url_for('register') }}">
+                Create an account
+            </a>
+
+            <a href="{{ url_for('recovery') }}">
+                Forgot / unlock account
+            </a>
+
+        </div>
+
     </div>
-  </div>
 
-  <div class="card auth-card">
-    <div class="card-head">
-      <span class="step">01</span>
-      <div>
-        <h2>Sign in</h2>
-        <p>Start with your textual password.</p>
-      </div>
-    </div>
-
-    <form action="{{ url_for('login_start') }}" method="post" class="form">
-      <label>Username</label>
-      <input name="username" required autocomplete="username" placeholder="Enter username">
-
-      <label>Textual password</label>
-      <input name="password" type="password" required autocomplete="current-password"
-             placeholder="4–8 characters: a–h and 1–8">
-
-      <button class="primary-btn" type="submit">Continue to graphical verification →</button>
-    </form>
-
-    <div class="auth-links">
-      <a href="{{ url_for('register') }}">Create an account</a>
-      <a href="{{ url_for('recovery') }}">Forgot / unlock account</a>
-    </div>
-  </div>
 </section>
+
 
 <section class="how-section">
-  <div class="section-heading">
-    <div class="eyebrow">HOW IT WORKS</div>
-    <h2>Three layers of authentication</h2>
-  </div>
 
-  <div class="cards-3">
-    <article class="mini-card">
-      <span class="mini-number">01</span>
-      <h3>Textual password</h3>
-      <p>A familiar 4–8 character password using the project's 16-character alphabet.</p>
-    </article>
-    <article class="mini-card">
-      <span class="mini-number">02</span>
-      <h3>Pass-colour circle</h3>
-      <p>Eight colour sectors are displayed with all 16 characters randomly distributed.</p>
-    </article>
-    <article class="mini-card">
-      <span class="mini-number">03</span>
-      <h3>Security verification</h3>
-      <p>Complete the graphical sequence and a final CAPTCHA before authentication.</p>
-    </article>
-  </div>
+    <div class="section-heading">
+
+        <div class="eyebrow">
+            HOW IT WORKS
+        </div>
+
+        <h2>
+            Three layers of authentication
+        </h2>
+
+    </div>
+
+
+    <div class="cards-3">
+
+        <article class="mini-card">
+
+            <span class="mini-number">
+                01
+            </span>
+
+            <h3>
+                Textual password
+            </h3>
+
+            <p>
+                Enter your familiar 4–8 character password
+                using the project's 16-character alphabet.
+            </p>
+
+        </article>
+
+
+        <article class="mini-card">
+
+            <span class="mini-number">
+                02
+            </span>
+
+            <h3>
+                Pass-colour circle
+            </h3>
+
+            <p>
+                Find your pass-colour sector and rotate
+                the characters until the required character
+                enters that sector.
+            </p>
+
+        </article>
+
+
+        <article class="mini-card">
+
+            <span class="mini-number">
+                03
+            </span>
+
+            <h3>
+                Security verification
+            </h3>
+
+            <p>
+                Complete the graphical password sequence
+                and solve the final security verification.
+            </p>
+
+        </article>
+
+    </div>
+
 </section>
+
 {% endblock %}

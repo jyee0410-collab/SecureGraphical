@@ -1,60 +1,250 @@
 {% extends "base.html" %}
-{% block title %}Register · SecureGraphical{% endblock %}
+
+{% block title %}
+Register · SecureGraphical
+{% endblock %}
+
 
 {% block content %}
-<div class="center-wrap">
-  <div class="card form-card wide">
-    <div class="page-title">
-      <div class="eyebrow">REGISTRATION PHASE</div>
-      <h1>Create your SecureGraphical identity</h1>
-      <p>Choose a textual password and one pass-colour. The other seven colours become decoys.</p>
+
+<section class="auth-page">
+
+    <div class="auth-intro">
+
+        <div class="eyebrow">
+            CREATE YOUR SECURE PROFILE
+        </div>
+
+        <h1>
+            Build your graphical password.
+        </h1>
+
+        <p>
+            Create a normal textual password and choose
+            one colour as your secret pass-colour.
+            The remaining colours become decoys.
+        </p>
+
+
+        <div class="alphabet-panel">
+
+            <div class="alphabet-title">
+                Allowed alphabet
+            </div>
+
+            <div class="alphabet">
+
+                {% for character in characters %}
+
+                    <span>
+                        {{ character }}
+                    </span>
+
+                {% endfor %}
+
+            </div>
+
+            <small>
+                Exactly 16 characters are available:
+                a–h and 1–8.
+            </small>
+
+        </div>
+
     </div>
 
-    <form method="post" class="form">
-      <div class="form-grid">
-        <div>
-          <label>Username</label>
-          <input name="username" required minlength="3" placeholder="e.g. student01">
-        </div>
-        <div>
-          <label>Recovery email</label>
-          <input name="email" type="email" required placeholder="name@example.com">
-        </div>
-      </div>
 
-      <div class="form-grid">
-        <div>
-          <label>Textual password</label>
-          <input id="password" name="password" type="password" required minlength="4" maxlength="8"
-                 placeholder="4–8 characters">
-          <small>Allowed alphabet: a b c d e f g h 1 2 3 4 5 6 7 8</small>
+    <div class="card form-card">
+
+        <div class="card-head">
+
+            <span class="step">
+                01
+            </span>
+
+            <div>
+
+                <h2>
+                    Create account
+                </h2>
+
+                <p>
+                    Register your authentication information.
+                </p>
+
+            </div>
+
         </div>
-        <div>
-          <label>Confirm password</label>
-          <input name="confirm_password" type="password" required minlength="4" maxlength="8"
-                 placeholder="Repeat password">
-        </div>
-      </div>
 
-      <label>Choose your pass-colour</label>
-      <div class="colour-picker">
-        {% for color in colors %}
-          <label class="colour-option">
-            <input type="radio" name="pass_color" value="{{ color.name }}" required>
-            <span class="colour-swatch" style="--c: {{ color.hex }}"></span>
-            <span>{{ color.name }}</span>
-          </label>
-        {% endfor %}
-      </div>
 
-      <div class="info-box">
-        <strong>Security concept:</strong>
-        The selected colour is your <b>pass-colour</b>. The remaining seven colours
-        are treated as <b>decoy-colours</b> during graphical authentication.
-      </div>
+        <form
+            method="post"
+            class="form"
+        >
 
-      <button class="primary-btn" type="submit">Create secure account</button>
-    </form>
-  </div>
-</div>
+            <div class="form-grid">
+
+                <div>
+
+                    <label>
+                        Username
+                    </label>
+
+                    <input
+                        name="username"
+                        required
+                        minlength="3"
+                        maxlength="40"
+                        placeholder="e.g. student01"
+                    >
+
+                </div>
+
+
+                <div>
+
+                    <label>
+                        Recovery email
+                    </label>
+
+                    <input
+                        name="email"
+                        type="email"
+                        required
+                        placeholder="name@example.com"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div class="form-grid">
+
+                <div>
+
+                    <label>
+                        Textual password
+                    </label>
+
+                    <input
+                        id="password"
+                        name="password"
+                        type="password"
+                        required
+                        minlength="4"
+                        maxlength="8"
+                        pattern="[abcdefgh12345678]{4,8}"
+                        placeholder="4–8 characters"
+                    >
+
+                    <small>
+                        Allowed:
+                        a b c d e f g h 1 2 3 4 5 6 7 8
+                    </small>
+
+                </div>
+
+
+                <div>
+
+                    <label>
+                        Confirm password
+                    </label>
+
+                    <input
+                        name="confirm_password"
+                        type="password"
+                        required
+                        minlength="4"
+                        maxlength="8"
+                        placeholder="Repeat password"
+                    >
+
+                </div>
+
+            </div>
+
+
+            <div>
+
+                <label>
+                    Choose your pass-colour
+                </label>
+
+                <p class="field-description">
+                    Remember this colour. It will be your
+                    target sector during graphical login.
+                </p>
+
+
+                <div class="colour-picker">
+
+                    {% for color in colors %}
+
+                        <label class="colour-option">
+
+                            <input
+                                type="radio"
+                                name="pass_color"
+                                value="{{ color.name }}"
+                                required
+                            >
+
+                            <span
+                                class="colour-swatch"
+                                style="--c: {{ color.hex }}"
+                            ></span>
+
+                            <span>
+                                {{ color.name }}
+                            </span>
+
+                        </label>
+
+                    {% endfor %}
+
+                </div>
+
+            </div>
+
+
+            <div class="info-box">
+
+                <div class="info-icon">
+                    i
+                </div>
+
+                <div>
+
+                    <strong>
+                        How your colour works
+                    </strong>
+
+                    <p>
+                        Your selected colour is your
+                        <b>pass-colour</b>.
+                        The other seven colours act as
+                        <b>decoy-colours</b>.
+                    </p>
+
+                </div>
+
+            </div>
+
+
+            <button
+                class="primary-btn"
+                type="submit"
+            >
+                Create secure account
+                <span>→</span>
+            </button>
+
+        </form>
+
+    </div>
+
+</section>
+
 {% endblock %}

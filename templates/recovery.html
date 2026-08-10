@@ -1,0 +1,31 @@
+{% extends "base.html" %}
+{% block title %}Account Recovery · SecureGraphical{% endblock %}
+
+{% block content %}
+<div class="center-wrap">
+  <div class="card form-card recovery-card">
+    <div class="page-title">
+      <div class="eyebrow">ACCOUNT RECOVERY</div>
+      <h1>Re-enable your account</h1>
+      <p>Enter the username and registered recovery email.</p>
+    </div>
+
+    <form method="post" class="form">
+      <label>Username</label>
+      <input name="username" required placeholder="Enter username">
+
+      <label>Recovery email</label>
+      <input name="email" type="email" required placeholder="name@example.com">
+
+      <button class="primary-btn" type="submit">Verify identity & re-enable</button>
+    </form>
+
+    <div class="info-box">
+      <strong>Demo implementation:</strong>
+      This project verifies the registered email and clears the temporary lock.
+      For a production system, replace this with a real time-limited email OTP or
+      password-reset token service.
+    </div>
+  </div>
+</div>
+{% endblock %}

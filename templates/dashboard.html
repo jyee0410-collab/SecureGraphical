@@ -1,526 +1,104 @@
-<!DOCTYPE html>
-<html lang="en">
+{% extends "base.html" %}
+{% block title %}Dashboard · SecureGraphical{% endblock %}
 
-<head>
+{% block content %}
+<div class="dashboard">
+  <div class="dashboard-header">
+    <div>
+      <div class="eyebrow">SECURITY DASHBOARD</div>
+      <h1>Welcome, {{ user["username"] }}</h1>
+      <p>Authentication and account security overview.</p>
+    </div>
+    <div class="account-badge">
+      <span class="online-dot"></span>
+      Account active
+    </div>
+  </div>
 
-    <meta charset="UTF-8">
+  <div class="stats-grid">
+    <div class="stat-card">
+      <span>Pass-colour</span>
+      <strong>{{ user["pass_color"] }}</strong>
+      <small>1 selected colour · 7 decoy colours</small>
+    </div>
+    <div class="stat-card">
+      <span>Password</span>
+      <strong>Protected</strong>
+      <small>Stored as a secure password hash</small>
+    </div>
+    <div class="stat-card">
+      <span>Lockout policy</span>
+      <strong>{{ max_attempts }} attempts</strong>
+      <small>Temporary lock after repeated failures</small>
+    </div>
+    <div class="stat-card">
+      <span>Recovery</span>
+      <strong>Enabled</strong>
+      <small>{{ user["email"] }}</small>
+    </div>
+  </div>
 
-    <meta
-        name="viewport"
-        content="width=device-width, initial-scale=1.0"
-    >
-
-    <title>Security Dashboard</title>
-
-    <link
-        rel="stylesheet"
-        href="{{ url_for('static', filename='style.css') }}"
-    >
-
-</head>
-
-<body>
-
-<div class="dashboard-page">
-
-    <header class="dashboard-header">
-
-        <div class="brand">
-
-            <span class="brand-icon">
-                🔐
-            </span>
-
-            <div>
-
-                <strong>
-                    SecureGraphical
-                </strong>
-
-                <small>
-                    Security Dashboard
-                </small>
-
-            </div>
-
+  <div class="dashboard-grid">
+    <section class="card table-card">
+      <div class="card-head">
+        <span class="step">04</span>
+        <div>
+          <h2>Recent login activity</h2>
+          <p>Latest authentication attempts for this account.</p>
         </div>
-
-
-        <a
-            href="{{ url_for('logout') }}"
-            class="logout-button"
-        >
-            Logout
-        </a>
-
-    </header>
-
-
-    <main class="dashboard-main">
-
-        <!-- ================================================= -->
-        <!-- WELCOME -->
-        <!-- ================================================= -->
-
-        <section class="welcome-card">
-
-            <div>
-
-                <span class="hero-badge">
-                    AUTHENTICATED
-                </span>
-
-                <h1>
-                    Welcome, {{ user["username"] }}
-                </h1>
-
-                <p>
-                    Your account has successfully passed
-                    multi-layer graphical authentication.
-                </p>
-
-            </div>
-
-            <div class="verified-badge">
-
-                <span>
-                    ✓
-                </span>
-
-                Verified
-
-            </div>
-
-        </section>
-
-
-        <!-- ================================================= -->
-        <!-- SECURITY CARDS -->
-        <!-- ================================================= -->
-
-        <section class="dashboard-grid">
-
-            <div class="dashboard-card">
-
-                <div class="dashboard-icon">
-                    🔑
-                </div>
-
-                <h3>
-                    Text Password
-                </h3>
-
-                <span class="secure-status">
-                    Protected
-                </span>
-
-                <p>
-                    Password is securely hashed
-                    before storage.
-                </p>
-
-            </div>
-
-
-            <div class="dashboard-card">
-
-                <div class="dashboard-icon">
-                    🎨
-                </div>
-
-                <h3>
-                    Graphical Password
-                </h3>
-
-                <span class="secure-status">
-                    Enabled
-                </span>
-
-                <p>
-                    Three-character graphical
-                    authentication is active.
-                </p>
-
-            </div>
-
-
-            <div class="dashboard-card">
-
-                <div class="dashboard-icon">
-                    🛡️
-                </div>
-
-                <h3>
-                    Security Verification
-                </h3>
-
-                <span class="secure-status">
-                    Enabled
-                </span>
-
-                <p>
-                    Mathematical CAPTCHA helps
-                    prevent automated login attempts.
-                </p>
-
-            </div>
-
-
-            <div class="dashboard-card">
-
-                <div class="dashboard-icon">
-                    ⛔
-                </div>
-
-                <h3>
-                    Account Protection
-                </h3>
-
-                <span class="secure-status">
-                    Active
-                </span>
-
-                <p>
-                    Repeated failed authentication
-                    triggers temporary lockout.
-                </p>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================================================= -->
-        <!-- ACCOUNT INFORMATION -->
-        <!-- ================================================= -->
-
-        <section class="content-card">
-
-            <div class="card-header">
-
-                <div>
-
-                    <h2>
-                        Account Information
-                    </h2>
-
-                    <p>
-                        Basic account security information.
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            <div class="account-info-grid">
-
-                <div class="account-info">
-
-                    <span>
-                        Username
-                    </span>
-
-                    <strong>
-                        {{ user["username"] }}
-                    </strong>
-
-                </div>
-
-
-                <div class="account-info">
-
-                    <span>
-                        Account Created
-                    </span>
-
-                    <strong>
-                        {{ user["created_at"] }}
-                    </strong>
-
-                </div>
-
-
-                <div class="account-info">
-
-                    <span>
-                        Authentication
-                    </span>
-
-                    <strong>
-                        Multi-Layer
-                    </strong>
-
-                </div>
-
-
-                <div class="account-info">
-
-                    <span>
-                        Account Status
-                    </span>
-
-                    <strong class="status-active">
-                        Active
-                    </strong>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================================================= -->
-        <!-- LOGIN HISTORY -->
-        <!-- ================================================= -->
-
-        <section class="content-card">
-
-            <div class="card-header">
-
-                <div>
-
-                    <h2>
-                        Login History
-                    </h2>
-
-                    <p>
-                        Recent authentication activity.
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            <div class="table-wrapper">
-
-                <table>
-
-                    <thead>
-
-                        <tr>
-
-                            <th>
-                                Status
-                            </th>
-
-                            <th>
-                                Date & Time
-                            </th>
-
-                            <th>
-                                IP Address
-                            </th>
-
-                        </tr>
-
-                    </thead>
-
-
-                    <tbody>
-
-                        {% if history %}
-
-                            {% for login in history %}
-
-                                <tr>
-
-                                    <td>
-
-                                        {% if login["success"] %}
-
-                                            <span class="table-success">
-                                                ✓ Successful
-                                            </span>
-
-                                        {% else %}
-
-                                            <span class="table-failed">
-                                                ✕ Failed
-                                            </span>
-
-                                        {% endif %}
-
-                                    </td>
-
-
-                                    <td>
-                                        {{ login["timestamp"] }}
-                                    </td>
-
-
-                                    <td>
-                                        {{ login["ip_address"] or "Unknown" }}
-                                    </td>
-
-                                </tr>
-
-                            {% endfor %}
-
-                        {% else %}
-
-                            <tr>
-
-                                <td
-                                    colspan="3"
-                                    class="empty-table"
-                                >
-                                    No login activity yet.
-                                </td>
-
-                            </tr>
-
-                        {% endif %}
-
-                    </tbody>
-
-                </table>
-
-            </div>
-
-        </section>
-
-
-        <!-- ================================================= -->
-        <!-- SECURITY ARCHITECTURE -->
-        <!-- ================================================= -->
-
-        <section class="content-card">
-
-            <div class="card-header">
-
-                <div>
-
-                    <h2>
-                        Security Architecture
-                    </h2>
-
-                    <p>
-                        Multiple security mechanisms protect
-                        the authentication process.
-                    </p>
-
-                </div>
-
-            </div>
-
-
-            <div class="security-flow">
-
-                <div class="flow-item">
-
-                    <span>
-                        01
-                    </span>
-
-                    <strong>
-                        Username
-                    </strong>
-
-                    <small>
-                        User identification
-                    </small>
-
-                </div>
-
-
-                <div class="flow-arrow">
-                    →
-                </div>
-
-
-                <div class="flow-item">
-
-                    <span>
-                        02
-                    </span>
-
-                    <strong>
-                        Password
-                    </strong>
-
-                    <small>
-                        Hash verification
-                    </small>
-
-                </div>
-
-
-                <div class="flow-arrow">
-                    →
-                </div>
-
-
-                <div class="flow-item">
-
-                    <span>
-                        03
-                    </span>
-
-                    <strong>
-                        Graphical Password
-                    </strong>
-
-                    <small>
-                        Three-character sequence
-                    </small>
-
-                </div>
-
-
-                <div class="flow-arrow">
-                    →
-                </div>
-
-
-                <div class="flow-item">
-
-                    <span>
-                        04
-                    </span>
-
-                    <strong>
-                        Pass Colour
-                    </strong>
-
-                    <small>
-                        Additional factor
-                    </small>
-
-                </div>
-
-
-                <div class="flow-arrow">
-                    →
-                </div>
-
-
-                <div class="flow-item">
-
-                    <span>
-                        05
-                    </span>
-
-                    <strong>
-                        CAPTCHA
-                    </strong>
-
-                    <small>
-                        Human verification
-                    </small>
-
-                </div>
-
-            </div>
-
-        </section>
-
-    </main>
-
+      </div>
+
+      {% if history %}
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Status</th>
+              <th>Reason</th>
+              <th>Time (UTC)</th>
+            </tr>
+          </thead>
+          <tbody>
+          {% for row in history %}
+            <tr>
+              <td>
+                {% if row["success"] %}
+                  <span class="status success">Successful</span>
+                {% else %}
+                  <span class="status failed">Failed</span>
+                {% endif %}
+              </td>
+              <td>{{ row["reason"] }}</td>
+              <td>{{ row["created_at"][:19].replace("T", " ") }}</td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+        <div class="empty-state">No login activity recorded yet.</div>
+      {% endif %}
+    </section>
+
+    <section class="card checklist-card">
+      <div class="card-head">
+        <span class="step">05</span>
+        <div>
+          <h2>Security layers</h2>
+          <p>Protection currently enabled.</p>
+        </div>
+      </div>
+      <ul class="check-list">
+        <li><span>✓</span> Password hashing</li>
+        <li><span>✓</span> Randomized 16-character distribution</li>
+        <li><span>✓</span> Eight colour sectors</li>
+        <li><span>✓</span> Clockwise / anti-clockwise rotation</li>
+        <li><span>✓</span> Pass-colour and decoy colours</li>
+        <li><span>✓</span> CAPTCHA verification</li>
+        <li><span>✓</span> Failed-attempt lockout</li>
+        <li><span>✓</span> Account recovery</li>
+      </ul>
+    </section>
+  </div>
 </div>
-
-</body>
-
-</html>
+{% endblock %}

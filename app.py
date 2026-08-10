@@ -1,911 +1,497 @@
 import os
-import sqlite3
 import random
+import secrets
+import sqlite3
 import string
-import hashlib
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from functools import wraps
 
 from flask import (
-    Flask,
-    render_template,
-    request,
-    redirect,
-    url_for,
-    session,
-    flash,
-    jsonify
+    Flask, flash, jsonify, redirect, render_template,
+    request, session, url_for
 )
-from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
-
-# ============================================================
-# APPLICATION CONFIGURATION
-# ============================================================
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DB_PATH = os.path.join(BASE_DIR, "securegraphical.db")
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "change-this-secret-key-in-production")
 
-app.secret_key = os.environ.get(
-    "SECRET_KEY",
-    "secure-graphical-password-development-key-change-this"
-)
-
-# Render / production port
-PORT = int(os.environ.get("PORT", 5000))
-
-# SQLite database
-DATABASE = os.path.join(
-    os.path.dirname(os.path.abspath(__file__)),
-    "users.db"
-)
-
-# Security settings
-MAX_LOGIN_ATTEMPTS = 5
-LOCKOUT_MINUTES = 5
-
-# 8 colours
+CHARACTERS = list("abcdefgh12345678")
 COLORS = [
-    {
-        "name": "Red",
-        "hex": "#ef4444"
-    },
-    {
-        "name": "Blue",
-        "hex": "#3b82f6"
-    },
-    {
-        "name": "Green",
-        "hex": "#22c55e"
-    },
-    {
-        "name": "Yellow",
-        "hex": "#eab308"
-    },
-    {
-        "name": "Purple",
-        "hex": "#a855f7"
-    },
-    {
-        "name": "Orange",
-        "hex": "#f97316"
-    },
-    {
-        "name": "Pink",
-        "hex": "#ec4899"
-    },
-    {
-        "name": "Cyan",
-        "hex": "#06b6d4"
-    }
+    {"name": "Red", "hex": "#ef4444"},
+    {"name": "Blue", "hex": "#3b82f6"},
+    {"name": "Green", "hex": "#22c55e"},
+    {"name": "Yellow", "hex": "#eab308"},
+    {"name": "Purple", "hex": "#8b5cf6"},
+    {"name": "Orange", "hex": "#f97316"},
+    {"name": "Pink", "hex": "#ec4899"},
+    {"name": "Cyan", "hex": "#06b6d4"},
 ]
+MAX_ATTEMPTS = 5
+LOCK_MINUTES = 10
 
-# 16 graphical characters
-GRAPHICAL_CHARS = list("abcdefgh12345678")
 
-
-# ============================================================
-# DATABASE
-# ============================================================
-
-def get_db():
-    conn = sqlite3.connect(DATABASE)
+def db():
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
 
 
 def init_db():
+    conn = db()
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT UNIQUE NOT NULL,
+        password_hash TEXT NOT NULL,
+        pass_color TEXT NOT NULL,
+        email TEXT NOT NULL,
+        failed_attempts INTEGER NOT NULL DEFAULT 0,
+        locked_until TEXT,
+        created_at TEXT NOT NULL
+    );
 
-    conn = get_db()
-    cursor = conn.cursor()
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT UNIQUE NOT NULL,
-            password_hash TEXT NOT NULL,
-            graphical_password_hash TEXT NOT NULL,
-            pass_color TEXT NOT NULL,
-            created_at TEXT NOT NULL,
-            failed_attempts INTEGER DEFAULT 0,
-            locked_until TEXT
-        )
+    CREATE TABLE IF NOT EXISTS login_history (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER,
+        username TEXT NOT NULL,
+        success INTEGER NOT NULL,
+        reason TEXT,
+        ip_address TEXT,
+        created_at TEXT NOT NULL,
+        FOREIGN KEY(user_id) REFERENCES users(id)
+    );
     """)
-
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS login_history (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            success INTEGER NOT NULL,
-            timestamp TEXT NOT NULL,
-            ip_address TEXT
-        )
-    """)
-
     conn.commit()
     conn.close()
 
 
-# ============================================================
-# CAPTCHA
-# ============================================================
-
-def generate_captcha():
-    """
-    Generate a simple mathematical CAPTCHA.
-    Example:
-        7 + 3 = ?
-    """
-
-    number1 = random.randint(1, 9)
-    number2 = random.randint(1, 9)
-
-    operators = ["+", "-", "*"]
-    operator = random.choice(operators)
-
-    if operator == "+":
-        answer = number1 + number2
-
-    elif operator == "-":
-        # Avoid negative answers
-        if number2 > number1:
-            number1, number2 = number2, number1
-
-        answer = number1 - number2
-
-    else:
-        answer = number1 * number2
-
-    question = f"{number1} {operator} {number2}"
-
-    session["captcha_answer"] = str(answer)
-
-    return question
+def utc_now():
+    return datetime.now(timezone.utc)
 
 
-def verify_captcha(user_answer):
-    correct_answer = session.get("captcha_answer")
+def iso(dt):
+    return dt.isoformat() if dt else None
 
-    if not correct_answer:
+
+def is_locked(user):
+    if not user["locked_until"]:
+        return False
+    try:
+        return utc_now() < datetime.fromisoformat(user["locked_until"])
+    except ValueError:
         return False
 
-    return str(user_answer).strip() == str(correct_answer).strip()
+
+def log_attempt(user_id, username, success, reason):
+    conn = db()
+    conn.execute(
+        """INSERT INTO login_history
+           (user_id, username, success, reason, ip_address, created_at)
+           VALUES (?, ?, ?, ?, ?, ?)""",
+        (
+            user_id,
+            username,
+            int(success),
+            reason,
+            request.headers.get("X-Forwarded-For", request.remote_addr),
+            iso(utc_now()),
+        ),
+    )
+    conn.commit()
+    conn.close()
 
 
-# ============================================================
-# GRAPHICAL PASSWORD
-# ============================================================
+def login_required(view):
+    @wraps(view)
+    def wrapped(*args, **kwargs):
+        if not session.get("user_id"):
+            flash("Please log in first.", "warning")
+            return redirect(url_for("index"))
+        return view(*args, **kwargs)
+    return wrapped
 
-def create_graphical_grid():
 
-    characters = GRAPHICAL_CHARS.copy()
-    random.shuffle(characters)
+def generate_captcha():
+    a = random.randint(2, 12)
+    b = random.randint(2, 12)
+    op = random.choice(["+", "-", "×"])
+    if op == "+":
+        answer = a + b
+    elif op == "-":
+        if b > a:
+            a, b = b, a
+        answer = a - b
+    else:
+        answer = a * b
+    session["captcha_answer"] = str(answer)
+    session["captcha_question"] = f"{a} {op} {b} = ?"
 
-    # Random rotation
-    rotation = random.choice([0, 90, 180, 270])
 
-    # Random sector
-    sector = random.randint(1, 4)
-
-    # Random colour mapping
-    color_list = COLORS.copy()
-    random.shuffle(color_list)
-
-    grid = []
-
-    for index, char in enumerate(characters):
-
-        color = color_list[index % len(color_list)]
-
-        grid.append({
-            "char": char,
-            "color": color["name"],
-            "hex": color["hex"],
-            "position": index + 1
-        })
+def new_circle():
+    shuffled = CHARACTERS[:]
+    random.shuffle(shuffled)
+    sectors = [[] for _ in range(8)]
+    for i, ch in enumerate(shuffled):
+        sectors[i % 8].append(ch)
 
     return {
-        "grid": grid,
-        "rotation": rotation,
-        "sector": sector
+        "sectors": sectors,
+        "rotation": 0,
+        "selected": [],
+        "round": 0,
+        "started_at": iso(utc_now()),
     }
 
 
-def hash_graphical_password(sequence, pass_color):
-
-    raw_value = (
-        sequence +
-        "|" +
-        pass_color +
-        "|" +
-        app.secret_key
-    )
-
-    return hashlib.sha256(
-        raw_value.encode("utf-8")
-    ).hexdigest()
-
-
-# ============================================================
-# LOGIN LOCKOUT
-# ============================================================
-
-def is_account_locked(user):
-
-    locked_until = user["locked_until"]
-
-    if not locked_until:
-        return False
-
-    try:
-        locked_time = datetime.fromisoformat(locked_until)
-    except Exception:
-        return False
-
-    if datetime.utcnow() < locked_time:
-        return True
-
-    # Lockout expired
-    conn = get_db()
-
-    conn.execute("""
-        UPDATE users
-        SET failed_attempts = 0,
-            locked_until = NULL
-        WHERE username = ?
-    """, (user["username"],))
-
-    conn.commit()
-    conn.close()
-
-    return False
-
-
-def register_failed_attempt(username):
-
-    conn = get_db()
-
-    user = conn.execute(
-        "SELECT * FROM users WHERE username = ?",
-        (username,)
-    ).fetchone()
-
-    if not user:
-        conn.close()
+def rotate_state(direction):
+    state = session.get("circle")
+    if not state:
         return
 
-    failed_attempts = user["failed_attempts"] + 1
+    if direction == "clockwise":
+        # Every character moves to the next sector.
+        state["sectors"] = [state["sectors"][-1]] + state["sectors"][:-1]
+        state["rotation"] = (state["rotation"] + 1) % 8
+    else:
+        # Every character moves to the previous sector.
+        state["sectors"] = state["sectors"][1:] + [state["sectors"][0]]
+        state["rotation"] = (state["rotation"] - 1) % 8
 
-    locked_until = None
-
-    if failed_attempts >= MAX_LOGIN_ATTEMPTS:
-
-        locked_until = (
-            datetime.utcnow() +
-            timedelta(minutes=LOCKOUT_MINUTES)
-        ).isoformat()
-
-        failed_attempts = 0
-
-    conn.execute("""
-        UPDATE users
-        SET failed_attempts = ?,
-            locked_until = ?
-        WHERE username = ?
-    """, (
-        failed_attempts,
-        locked_until,
-        username
-    ))
-
-    conn.commit()
-    conn.close()
+    session["circle"] = state
+    session.modified = True
 
 
-def reset_failed_attempts(username):
-
-    conn = get_db()
-
-    conn.execute("""
-        UPDATE users
-        SET failed_attempts = 0,
-            locked_until = NULL
-        WHERE username = ?
-    """, (username,))
-
-    conn.commit()
-    conn.close()
-
-
-# ============================================================
-# LOGIN HISTORY
-# ============================================================
-
-def save_login_history(username, success):
-
-    ip_address = request.headers.get(
-        "X-Forwarded-For",
-        request.remote_addr
+def validate_password_format(password):
+    return (
+        4 <= len(password) <= 8
+        and all(ch in CHARACTERS for ch in password)
     )
 
-    if ip_address and "," in ip_address:
-        ip_address = ip_address.split(",")[0].strip()
-
-    conn = get_db()
-
-    conn.execute("""
-        INSERT INTO login_history
-        (
-            username,
-            success,
-            timestamp,
-            ip_address
-        )
-        VALUES (?, ?, ?, ?)
-    """, (
-        username,
-        1 if success else 0,
-        datetime.utcnow().strftime(
-            "%Y-%m-%d %H:%M:%S"
-        ),
-        ip_address
-    ))
-
-    conn.commit()
-    conn.close()
-
-
-# ============================================================
-# AUTH DECORATOR
-# ============================================================
-
-def login_required(function):
-
-    @wraps(function)
-    def decorated_function(*args, **kwargs):
-
-        if "user_id" not in session:
-            flash(
-                "Please login first.",
-                "warning"
-            )
-
-            return redirect(
-                url_for("index")
-            )
-
-        return function(*args, **kwargs)
-
-    return decorated_function
-
-
-# ============================================================
-# HOME
-# ============================================================
 
 @app.route("/")
 def index():
+    return render_template("index.html")
 
-    captcha_question = generate_captcha()
-
-    return render_template(
-        "index.html",
-        captcha_question=captcha_question
-    )
-
-
-# ============================================================
-# REGISTER
-# ============================================================
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-
-    captcha_question = generate_captcha()
-
     if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        password = request.form.get("password", "")
+        confirm = request.form.get("confirm_password", "")
+        email = request.form.get("email", "").strip()
+        pass_color = request.form.get("pass_color", "")
 
-        username = request.form.get(
-            "username",
-            ""
-        ).strip()
+        if not username or len(username) < 3:
+            flash("Username must contain at least 3 characters.", "danger")
+            return render_template("register.html", colors=COLORS)
 
-        password = request.form.get(
-            "password",
-            ""
-        ).strip()
-
-        captcha = request.form.get(
-            "captcha",
-            ""
-        ).strip()
-
-        sequence = request.form.get(
-            "graphical_sequence",
-            ""
-        ).strip()
-
-        pass_color = request.form.get(
-            "pass_color",
-            ""
-        ).strip()
-
-        # --------------------------------
-        # Basic validation
-        # --------------------------------
-
-        if not username or not password:
-
+        if not validate_password_format(password):
             flash(
-                "Username and password are required.",
-                "danger"
+                "Password must be 4–8 characters and use only a–h and 1–8.",
+                "danger",
             )
+            return render_template("register.html", colors=COLORS)
 
-            return render_template(
-                "index.html",
-                captcha_question=captcha_question
+        if password != confirm:
+            flash("Passwords do not match.", "danger")
+            return render_template("register.html", colors=COLORS)
+
+        if "@" not in email or "." not in email.split("@")[-1]:
+            flash("Please enter a valid email address.", "danger")
+            return render_template("register.html", colors=COLORS)
+
+        if pass_color not in [c["name"] for c in COLORS]:
+            flash("Please choose one pass-colour.", "danger")
+            return render_template("register.html", colors=COLORS)
+
+        conn = db()
+        try:
+            conn.execute(
+                """INSERT INTO users
+                   (username, password_hash, pass_color, email, created_at)
+                   VALUES (?, ?, ?, ?, ?)""",
+                (
+                    username,
+                    generate_password_hash(password),
+                    pass_color,
+                    email,
+                    iso(utc_now()),
+                ),
             )
-
-        # --------------------------------
-        # CAPTCHA
-        # --------------------------------
-
-        if not verify_captcha(captcha):
-
-            flash(
-                "Security verification failed. Please solve the CAPTCHA again.",
-                "danger"
-            )
-
-            captcha_question = generate_captcha()
-
-            return render_template(
-                "index.html",
-                captcha_question=captcha_question
-            )
-
-        # --------------------------------
-        # Graphical password validation
-        # --------------------------------
-
-        if not sequence:
-
-            flash(
-                "Please create your graphical password.",
-                "danger"
-            )
-
-            captcha_question = generate_captcha()
-
-            return render_template(
-                "index.html",
-                captcha_question=captcha_question
-            )
-
-        selected_chars = sequence.split(",")
-
-        if len(selected_chars) != 3:
-
-            flash(
-                "Please select exactly 3 graphical characters.",
-                "danger"
-            )
-
-            captcha_question = generate_captcha()
-
-            return render_template(
-                "index.html",
-                captcha_question=captcha_question
-            )
-
-        if not pass_color:
-
-            flash(
-                "Please select a pass colour.",
-                "danger"
-            )
-
-            captcha_question = generate_captcha()
-
-            return render_template(
-                "index.html",
-                captcha_question=captcha_question
-            )
-
-        # --------------------------------
-        # Check duplicate username
-        # --------------------------------
-
-        conn = get_db()
-
-        existing_user = conn.execute(
-            """
-            SELECT id
-            FROM users
-            WHERE username = ?
-            """,
-            (username,)
-        ).fetchone()
-
-        if existing_user:
-
+            conn.commit()
+        except sqlite3.IntegrityError:
             conn.close()
-
-            flash(
-                "Username already exists.",
-                "danger"
-            )
-
-            captcha_question = generate_captcha()
-
-            return render_template(
-                "index.html",
-                captcha_question=captcha_question
-            )
-
-        # --------------------------------
-        # Hash passwords
-        # --------------------------------
-
-        normal_password_hash = generate_password_hash(
-            password
-        )
-
-        graphical_hash = hash_graphical_password(
-            sequence,
-            pass_color
-        )
-
-        # --------------------------------
-        # Create account
-        # --------------------------------
-
-        conn.execute("""
-            INSERT INTO users
-            (
-                username,
-                password_hash,
-                graphical_password_hash,
-                pass_color,
-                created_at
-            )
-            VALUES (?, ?, ?, ?, ?)
-        """, (
-            username,
-            normal_password_hash,
-            graphical_hash,
-            pass_color,
-            datetime.utcnow().strftime(
-                "%Y-%m-%d %H:%M:%S"
-            )
-        ))
-
-        conn.commit()
+            flash("That username already exists.", "danger")
+            return render_template("register.html", colors=COLORS)
         conn.close()
 
-        flash(
-            "Registration successful. You can now login.",
-            "success"
-        )
+        flash("Registration successful. You can now log in.", "success")
+        return redirect(url_for("index"))
 
-        return redirect(
-            url_for("index")
-        )
-
-    return render_template(
-        "index.html",
-        captcha_question=captcha_question
-    )
+    return render_template("register.html", colors=COLORS)
 
 
-# ============================================================
-# LOGIN
-# ============================================================
+@app.route("/login/start", methods=["POST"])
+def login_start():
+    username = request.form.get("username", "").strip()
+    password = request.form.get("password", "")
 
-@app.route("/login", methods=["POST"])
-def login():
-
-    username = request.form.get(
-        "username",
-        ""
-    ).strip()
-
-    password = request.form.get(
-        "password",
-        ""
-    ).strip()
-
-    captcha = request.form.get(
-        "captcha",
-        ""
-    ).strip()
-
-    sequence = request.form.get(
-        "graphical_sequence",
-        ""
-    ).strip()
-
-    pass_color = request.form.get(
-        "pass_color",
-        ""
-    ).strip()
-
-    # --------------------------------
-    # CAPTCHA
-    # --------------------------------
-
-    if not verify_captcha(captcha):
-
-        save_login_history(
-            username,
-            False
-        )
-
-        flash(
-            "Security verification failed.",
-            "danger"
-        )
-
-        return redirect(
-            url_for("index")
-        )
-
-    # --------------------------------
-    # Find user
-    # --------------------------------
-
-    conn = get_db()
-
+    conn = db()
     user = conn.execute(
-        """
-        SELECT *
-        FROM users
-        WHERE username = ?
-        """,
-        (username,)
+        "SELECT * FROM users WHERE username = ?", (username,)
     ).fetchone()
-
     conn.close()
 
     if not user:
+        log_attempt(None, username, False, "unknown username")
+        flash("Invalid username or password.", "danger")
+        return redirect(url_for("index"))
 
-        save_login_history(
-            username,
-            False
-        )
-
+    if is_locked(user):
+        until = datetime.fromisoformat(user["locked_until"]).astimezone()
         flash(
-            "Invalid username or password.",
-            "danger"
+            f"Account is temporarily locked until {until.strftime('%H:%M:%S')}.",
+            "danger",
         )
+        return redirect(url_for("index"))
 
-        return redirect(
-            url_for("index")
+    if not check_password_hash(user["password_hash"], password):
+        attempts = user["failed_attempts"] + 1
+        locked_until = None
+        if attempts >= MAX_ATTEMPTS:
+            locked_until = iso(utc_now() + timedelta(minutes=LOCK_MINUTES))
+            attempts = 0
+
+        conn = db()
+        conn.execute(
+            "UPDATE users SET failed_attempts = ?, locked_until = ? WHERE id = ?",
+            (attempts, locked_until, user["id"]),
         )
+        conn.commit()
+        conn.close()
 
-    # --------------------------------
-    # Check lockout
-    # --------------------------------
+        log_attempt(user["id"], username, False, "text password failed")
 
-    if is_account_locked(user):
+        if locked_until:
+            flash(
+                f"Too many failed attempts. Account locked for {LOCK_MINUTES} minutes.",
+                "danger",
+            )
+        else:
+            remaining = MAX_ATTEMPTS - attempts
+            flash(
+                f"Invalid username or password. {remaining} attempt(s) remaining.",
+                "danger",
+            )
+        return redirect(url_for("index"))
 
-        save_login_history(
-            username,
-            False
-        )
+    session.clear()
+    session["pending_user_id"] = user["id"]
+    session["pending_username"] = user["username"]
+    session["pending_password"] = password
+    session["circle"] = new_circle()
+    generate_captcha()
+    return redirect(url_for("graphical_login"))
 
-        flash(
-            f"Account temporarily locked. Please try again in {LOCKOUT_MINUTES} minutes.",
-            "danger"
-        )
 
-        return redirect(
-            url_for("index")
-        )
+@app.route("/graphical-login")
+def graphical_login():
+    if not session.get("pending_user_id"):
+        flash("Start the login process first.", "warning")
+        return redirect(url_for("index"))
 
-    # --------------------------------
-    # Normal password
-    # --------------------------------
+    conn = db()
+    user = conn.execute(
+        "SELECT id, username, pass_color FROM users WHERE id = ?",
+        (session["pending_user_id"],),
+    ).fetchone()
+    conn.close()
 
-    normal_password_valid = check_password_hash(
-        user["password_hash"],
-        password
-    )
-
-    # --------------------------------
-    # Graphical password
-    # --------------------------------
-
-    graphical_password_valid = False
-
-    if sequence and pass_color:
-
-        submitted_graphical_hash = hash_graphical_password(
-            sequence,
-            pass_color
-        )
-
-        graphical_password_valid = (
-            submitted_graphical_hash ==
-            user["graphical_password_hash"]
-        )
-
-    # --------------------------------
-    # Final authentication
-    # --------------------------------
-
-    if (
-        normal_password_valid and
-        graphical_password_valid
-    ):
-
-        reset_failed_attempts(
-            username
-        )
-
-        save_login_history(
-            username,
-            True
-        )
-
+    if not user:
         session.clear()
+        flash("Login session expired.", "danger")
+        return redirect(url_for("index"))
 
-        session["user_id"] = user["id"]
-        session["username"] = user["username"]
-
-        return redirect(
-            url_for("dashboard")
-        )
-
-    # --------------------------------
-    # Failed login
-    # --------------------------------
-
-    register_failed_attempt(
-        username
-    )
-
-    save_login_history(
-        username,
-        False
-    )
-
-    flash(
-        "Invalid login credentials or graphical password.",
-        "danger"
-    )
-
-    return redirect(
-        url_for("index")
+    circle = session.get("circle")
+    return render_template(
+        "graphical_password.html",
+        user=user,
+        colors=COLORS,
+        circle=circle,
+        captcha_question=session.get("captcha_question"),
+        selected="".join(circle.get("selected", [])),
     )
 
 
-# ============================================================
-# GRAPHICAL PASSWORD API
-# ============================================================
+@app.route("/api/rotate", methods=["POST"])
+def api_rotate():
+    if not session.get("pending_user_id"):
+        return jsonify({"ok": False, "message": "Login session expired."}), 401
 
-@app.route("/generate-grid")
-def generate_grid():
+    direction = request.json.get("direction")
+    if direction not in ("clockwise", "anticlockwise"):
+        return jsonify({"ok": False, "message": "Invalid direction."}), 400
 
-    grid_data = create_graphical_grid()
+    rotate_state(direction)
+    state = session["circle"]
+    return jsonify({"ok": True, "sectors": state["sectors"], "rotation": state["rotation"]})
 
-    return jsonify(
-        grid_data
+
+@app.route("/api/select-character", methods=["POST"])
+def api_select_character():
+    if not session.get("pending_user_id"):
+        return jsonify({"ok": False, "message": "Login session expired."}), 401
+
+    char = request.json.get("character", "")
+    state = session.get("circle")
+
+    if not state or char not in CHARACTERS:
+        return jsonify({"ok": False, "message": "Invalid character."}), 400
+
+    # Pass-colour is the sector at index 0.
+    selected_sector = state["sectors"][0]
+    if char not in selected_sector:
+        return jsonify({
+            "ok": False,
+            "message": "Select a character currently inside your pass-colour sector."
+        }), 400
+
+    state["selected"].append(char)
+    session["circle"] = state
+    session.modified = True
+
+    target = session.get("pending_password", "")
+    complete = len(state["selected"]) == len(target)
+
+    return jsonify({
+        "ok": True,
+        "selected": state["selected"],
+        "complete": complete,
+        "message": "Character accepted." if not complete else "Graphical password completed."
+    })
+
+
+@app.route("/verify-graphical", methods=["POST"])
+def verify_graphical():
+    if not session.get("pending_user_id"):
+        flash("Login session expired.", "warning")
+        return redirect(url_for("index"))
+
+    captcha = request.form.get("captcha", "").strip()
+    user_id = session["pending_user_id"]
+    username = session["pending_username"]
+    target = session.get("pending_password", "")
+    state = session.get("circle", {})
+    selected = "".join(state.get("selected", []))
+
+    if captcha != session.get("captcha_answer"):
+        log_attempt(user_id, username, False, "CAPTCHA failed")
+        generate_captcha()
+        flash("Security verification failed.", "danger")
+        return redirect(url_for("graphical_login"))
+
+    if selected != target:
+        log_attempt(user_id, username, False, "graphical password failed")
+        generate_captcha()
+        flash("Graphical password sequence is incorrect.", "danger")
+        return redirect(url_for("graphical_login"))
+
+    conn = db()
+    conn.execute(
+        "UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?",
+        (user_id,),
     )
+    conn.commit()
+    conn.close()
 
+    log_attempt(user_id, username, True, "successful authentication")
 
-# ============================================================
-# DASHBOARD
-# ============================================================
+    session.clear()
+    session["user_id"] = user_id
+    session["username"] = username
+    flash("Authentication successful. Welcome back!", "success")
+    return redirect(url_for("dashboard"))
+
 
 @app.route("/dashboard")
 @login_required
 def dashboard():
-
-    username = session.get(
-        "username"
-    )
-
-    conn = get_db()
-
+    conn = db()
     user = conn.execute(
-        """
-        SELECT
-            username,
-            created_at
-        FROM users
-        WHERE id = ?
-        """,
-        (session["user_id"],)
+        "SELECT * FROM users WHERE id = ?", (session["user_id"],)
     ).fetchone()
-
     history = conn.execute(
-        """
-        SELECT
-            success,
-            timestamp,
-            ip_address
-        FROM login_history
-        WHERE username = ?
-        ORDER BY id DESC
-        LIMIT 10
-        """,
-        (username,)
+        """SELECT success, reason, created_at
+           FROM login_history
+           WHERE user_id = ?
+           ORDER BY id DESC LIMIT 10""",
+        (session["user_id"],),
     ).fetchall()
-
     conn.close()
 
     return render_template(
         "dashboard.html",
         user=user,
-        history=history
+        history=history,
+        max_attempts=MAX_ATTEMPTS,
     )
 
 
-# ============================================================
-# LOGOUT
-# ============================================================
+@app.route("/recovery", methods=["GET", "POST"])
+def recovery():
+    if request.method == "POST":
+        username = request.form.get("username", "").strip()
+        email = request.form.get("email", "").strip()
+
+        conn = db()
+        user = conn.execute(
+            "SELECT * FROM users WHERE username = ? AND email = ?",
+            (username, email),
+        ).fetchone()
+
+        if user:
+            # Demo-friendly recovery: clear lock and failed-attempt counter.
+            conn.execute(
+                "UPDATE users SET failed_attempts = 0, locked_until = NULL WHERE id = ?",
+                (user["id"],),
+            )
+            conn.commit()
+            conn.close()
+            flash(
+                "Identity verified. Your account has been re-enabled. "
+                "For a production deployment, connect this step to a real email OTP.",
+                "success",
+            )
+        else:
+            conn.close()
+            flash("Username and recovery email do not match.", "danger")
+
+        return redirect(url_for("index"))
+
+    return render_template("recovery.html")
+
 
 @app.route("/logout")
 def logout():
-
     session.clear()
-
-    flash(
-        "You have been logged out.",
-        "success"
-    )
-
-    return redirect(
-        url_for("index")
-    )
+    flash("You have been logged out.", "success")
+    return redirect(url_for("index"))
 
 
-# ============================================================
-# HEALTH CHECK
-# ============================================================
+@app.context_processor
+def inject_helpers():
+    return {
+        "current_year": datetime.now().year,
+        "colors": COLORS,
+    }
 
-@app.route("/health")
-def health():
-
-    return jsonify({
-        "status": "ok",
-        "application": "SecureGraphical"
-    })
-
-
-# ============================================================
-# ERROR HANDLERS
-# ============================================================
-
-@app.errorhandler(404)
-def page_not_found(error):
-
-    return """
-    <h1>404 - Page Not Found</h1>
-    <p>The requested page does not exist.</p>
-    """, 404
-
-
-@app.errorhandler(500)
-def internal_server_error(error):
-
-    return """
-    <h1>500 - Internal Server Error</h1>
-    <p>Please check the application logs.</p>
-    """, 500
-
-
-# ============================================================
-# START APPLICATION
-# ============================================================
 
 init_db()
 
-
 if __name__ == "__main__":
-
-    app.run(
-        host="0.0.0.0",
-        port=PORT,
-        debug=False
-    )
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
